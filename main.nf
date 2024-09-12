@@ -37,10 +37,10 @@ workflow {
     hmmMarkerSearch(annotateGenomes.out.genome, annotateGenomes.out.species, annotateGenomes.out.faa, annotateGenomes.out.ffn)
     inferMarkers(hmmMarkerSearch.out)
     
+    // TODO: add filter so it's only rep genomes passed into buildMarkerDB
     buildMarkerDB(inferMarkers.out.markers_fa.collect(), inferMarkers.out.markers_map.collect())
-    // x.view()
     
-    // buildMarkerDB(repgenomes)
+
         
 
 }
@@ -181,7 +181,6 @@ process inferMarkers {
 
 }
 
-
 process buildMarkerDB {
     label 'mem_low_single_cpu'
     errorStrategy 'finish'
@@ -205,153 +204,3 @@ process buildMarkerDB {
     hs-blastn index phyeco.fa
     """
 }
-
-
-    // #! /usr/bin/env bash
-    // set -e
-    // set -x
-
-    // #get rep genome for each species
-
-    
-    // #example test_db/markers/phyeco/temp/117086/GCA_900552055.1/GCA_900552055.1.markers.fa
-    // for f in *.fa; 
-    // do cat "$f" >> phyeco.fa; done
-
-
-
-    // for f in *.map; do cat "$f" >> phyeco.map; done
-
-    // hs-blastn index phyeco.fa 
-
-// process buildPangenomeCommand {
-//     label 'mem_medium'
-//     errorStrategy 'finish'
-//     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/MIDASv3'
-
-//     input:
-//     tuple val(genome), file from build_markerdb_out, val(db_name), file(db_dir)
-
-//     output:
-//     tuple val(genome), file("build_pangenome_output/${genome}") into build_pangenome_out
-
-//     script:
-//     """
-//     #! /usr/bin/env bash
-//     set -e
-//     set -x
-
-//     conda activate MIDASv3
-
-//       scratch_dir="."
-
-//     midas build_pangenome --species all --midasdb_name ${db_name} --midasdb_dir ${db_dir} --debug --force --scratch_dir \${scratch_dir} -t ${task.cpus} --recluster
-//     """
-// }
-
-// process pangenomePerSpecies {
-//     label 'mem_medium'
-//     errorStrategy 'finish'
-//     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/MIDASv3'
-
-//     input:
-//     tuple val(genome), file from build_pangenome_out, val(db_name), file(db_dir)
-
-//     output:
-//     tuple val(genome), file("pangenome_per_species_output/${genome}") into pangenome_per_species_out
-
-//     script:
-//     """
-//     #! /usr/bin/env bash
-//     set -e
-//     set -x
-
-//     conda activate MIDASv3
-
-//       species_list="\$db_dir/species_list.txt"
-
-//     species=\$(awk "NR==\$SGE_TASK_ID" \$species_list | awk -F',' '{print \$1}')
-//     echo \$species
-
-//     bash /wynton/protected/home/sirota/clairedubin/bin/MIDAS/bin/pipeline.sh \$species \$db_dir/pangenomes \$${task.cpus} 8000 /wynton/protected/home/sirota/clairedubin/bin/MIDAS/bin
-//     """
-// }
-
-// process reclusterCentroids {
-//     label 'mem_medium'
-//     errorStrategy 'finish'
-//     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/MIDASv3'
-
-//     input:
-//     tuple val(genome), file from pangenome_per_species_out, val(db_name), file(db_dir)
-
-//     output:
-//     tuple val(genome), file("recluster_centroids_output/${genome}") into recluster_centroids_out
-
-//     script:
-//     """
-//     #! /usr/bin/env bash
-//     set -e
-//     set -x
-
-//     conda activate MIDASv3
-
-//       scratch_dir="./scratch"
-
-//     midas recluster_centroids --species all --midasdb_name ${db_name} --midasdb_dir ${db_dir} --debug --force --scratch_dir \${scratch_dir} -t ${task.cpus}
-//     """
-// }
-
-// process augmentPangenome {
-//     label 'mem_medium'
-//     errorStrategy 'finish'
-//     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/MIDASv3'
-
-//     input:
-//     tuple val(genome), file from recluster_centroids_out, val(db_name), file(db_dir)
-
-//     output:
-//     tuple val(genome), file("augment_pangenome_output/${genome}") into augment_pangenome_out
-
-//     script:
-//     """
-//     #! /usr/bin/env bash
-//     set -e
-//     set -x
-
-//     conda activate MIDASv3
-
-//     scratch_dir="./scratch"
-
-//     midas augment_pangenome --species all --midasdb_name ${db_name} --midasdb_dir ${db_dir} --debug --force --scratch_dir \${scratch_dir} -t ${task.cpus}
-//     """
-// }
-
-// process annotatePerGenome {
-//     label 'mem_medium'
-//     errorStrategy 'finish'
-
-//     input:
-//     tuple val(genome), file from augment_pangenome_out, val(db_name), file(db_dir)
-
-//     output:
-//     tuple val(genome), file("annotate_per_genome_output/${genome}") into annotate_per_genome_out
-
-//     script:
-//     """
-//     #! /usr/bin/env bash
-//     set -e
-
-//     midasdb_dir="${db_dir}"
-//     genomes_file="\${midasdb_dir}/genomes.tsv"
-//     genome_id=\$(awk "NR==\$SGE_TASK_ID" \$genomes_file | awk -F'\\t' '{print \$1}')
-//     species_id=\$(awk "NR==\$SGE_TASK_ID" \$genomes_file | awk -F'\\t' '{print \$2}')
-
-//     GENOMAD_DATA_DIR="/wynton/protected/home/sirota/clairedubin/databases/genomad_db"
-//     RESFIND_DATA_DIR="/wynton/protected/home/sirota/clairedubin/databases/resfinder_dbs"
-
-//     echo "Running GENOMAD: \$species_id:\$genome_id"
-
-//     conda activate genomad
-
-//     ffn="\${m
