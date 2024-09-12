@@ -35,10 +35,15 @@ workflow {
     annotateGenomes(genomes)
     generateGeneFeatures(annotateGenomes.out.genome, annotateGenomes.out.species, annotateGenomes.out.gff)
     hmmMarkerSearch(annotateGenomes.out.genome, annotateGenomes.out.species, annotateGenomes.out.faa, annotateGenomes.out.ffn)
-    inferMarkers(hmmMarkerSearch.out)
+    x = inferMarkers(hmmMarkerSearch.out)
     
-    // TODO: add filter so it's only rep genomes passed into buildMarkerDB
-    buildMarkerDB(inferMarkers.out.markers_fa.collect(), inferMarkers.out.markers_map.collect())
+    repgenomes = genomes.join(x.collect())
+    // .filter { r -> (r.genome_is_representative == "1")}
+
+    repgenomes.view()
+
+
+    // buildMarkerDB(inferMarkers.out.markers_fa.collect(), inferMarkers.out.markers_map.collect())
     
 
         
@@ -162,10 +167,11 @@ process inferMarkers {
     path(ffn)
 
     output:
-    val(genome), emit: genome
-    val(species), emit: species
-    path("${genome}.markers.fa"), emit: markers_fa
-    path("${genome}.markers.map"), emit: markers_map
+    tuple val(genome), path("${genome}.markers.fa"), path("${genome}.markers.map")
+    // val(genome), emit: genome
+    // val(species), emit: species
+    // path("${genome}.markers.fa"), emit: markers_fa
+    // path("${genome}.markers.map"), emit: markers_map
 
 
     script:
