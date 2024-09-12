@@ -24,11 +24,25 @@ workflow {
         .splitCsv(header: true, sep: '\t')
         .map { row -> tuple(row.genome, row.species, row.representative, row.genome_is_representative) } 
 
+    rep_genomes = Channel
+        .fromPath(params.genomes_tsv_path)
+        .splitCsv(header: true, sep: '\t')
+        .filter { r -> (r.genome_is_representative == "1")}
+        .map { row -> tuple(row.genome, row.species, row.representative, row.genome_is_representative) } 
+
+    // rep_genomes.view()
+    
     annotateGenomes(genomes)
     generateGeneFeatures(annotateGenomes.out.genome, annotateGenomes.out.species, annotateGenomes.out.gff)
     hmmMarkerSearch(annotateGenomes.out.genome, annotateGenomes.out.species, annotateGenomes.out.faa, annotateGenomes.out.ffn)
     inferMarkers(hmmMarkerSearch.out)
-    buildMarkerDB()
+    
+    x = inferMarkers.out.markers_fa.collect()
+    x.view()
+    
+    // buildMarkerDB(repgenomes)
+        
+
 }
 
 
@@ -167,16 +181,40 @@ process inferMarkers {
 
 }
 
+// process buildMarkerDB {
+//     label 'mem_low'
+//     errorStrategy 'finish'
+//     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/mtest'
+
+//     // input:
+//     // tuple val(genome), file from infer_markers_out, val(db_name), file(db_dir)
+
+//     // output:
+//     // tuple val(genome), file("build_markerdb_output/${genome}") into build_markerdb_out
+
+//     script:
+//     """
+//     #! /usr/bin/env bash
+//     set -e
+//     set -x
+
+//     python3 /wynton/protected/home/sirota/clairedubin/MIDAS3_nextflow/MIDAS/midas/subcommands/build_midasdb.py --build_markerdb --midasdb_name ${params.db_name} --midasdb_dir ${params.db_dir_path} --debug --force  -t ${task.cpus}
+//     """
+// }
+
 process buildMarkerDB {
-    label 'mem_low'
+    label 'mem_medium'
     errorStrategy 'finish'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/mtest'
 
-    // input:
-    // tuple val(genome), file from infer_markers_out, val(db_name), file(db_dir)
+    input:
+    tuple val(genome), val(species)
 
-    // output:
-    // tuple val(genome), file("build_markerdb_output/${genome}") into build_markerdb_out
+    output:
+    path("phyeco.fa")
+    path("phyeco.map")
+    path("phyeco.map")
+
 
     script:
     """
@@ -184,7 +222,21 @@ process buildMarkerDB {
     set -e
     set -x
 
-    midas build_midasdb --build_markerdb --midasdb_name ${params.db_name} --midasdb_dir ${params.db_dir_path} --debug --force  -t ${task.cpus}
+    #get rep genome for each species
+
+
+    
+    #example test_db/markers/phyeco/temp/117086/GCA_900552055.1/GCA_900552055.1.markers.fa
+    for f in *.fa; 
+    do cat "$f" >> phyeco.fa; done
+
+
+
+    for f in *.map; do cat "$f" >> phyeco.map; done
+
+    hs-blastn index phyeco.fa 
+
+    
     """
 }
 
