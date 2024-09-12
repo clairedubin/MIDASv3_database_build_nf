@@ -17,6 +17,12 @@ params.genomes_tsv_path = (params.db_dir_path.concat("genomes.tsv"))
 params.marker_model_hmm = params.db_dir_path + "markers_models/" + params.marker_set + "/marker_genes.hmm"
 params.bin_path = workflow.launchDir + '/bin'
 
+// //TODO:
+// check that genome IDs are unique
+// check that genome IDs are posix compliant
+// check that theres one rep genome per species
+
+
 workflow {
 
     genomes = Channel
@@ -24,32 +30,39 @@ workflow {
         .splitCsv(header: true, sep: '\t')
         .map { row -> tuple(row.genome, row.species, row.representative, row.genome_is_representative) } 
 
-    // rep_genomes = Channel
-    //     .fromPath(params.genomes_tsv_path)
-    //     .splitCsv(header: true, sep: '\t')
-    //     .filter { r -> (r.genome_is_representative == "1")}
-    //     .map { row -> tuple(row.genome, row.species, row.representative, row.genome_is_representative) } 
+    // get just representative genomes
+    genomes.filter { r -> (r[3] == "1") }
+        .map{ r -> tuple(r[0], r[1]) }
+        .set{ rep_genomes }
 
-    // rep_genomes.view()
-    
     annotateGenomes(genomes)
-    generateGeneFeatures(annotateGenomes.out.genome, annotateGenomes.out.species, annotateGenomes.out.gff)
-    hmmMarkerSearch(annotateGenomes.out.genome, annotateGenomes.out.species, annotateGenomes.out.faa, annotateGenomes.out.ffn)
-    x = inferMarkers(hmmMarkerSearch.out)
     
-    repgenomes = genomes.join(x.collect())
-    // .filter { r -> (r.genome_is_representative == "1")}
-
-    repgenomes.view()
-
-
-    // buildMarkerDB(inferMarkers.out.markers_fa.collect(), inferMarkers.out.markers_map.collect())
+    generateGeneFeatures(
+        annotateGenomes.out.genome, 
+        annotateGenomes.out.species, 
+        annotateGenomes.out.gff)
     
+    hmmMarkerSearch(
+        annotateGenomes.out.genome, 
+        annotateGenomes.out.species, 
+        annotateGenomes.out.faa, 
+        annotateGenomes.out.ffn)
 
-        
+    // TODO: add a comment about what is in hmmMarkerSearch.out tuple
+    inferMarkers(hmmMarkerSearch.out)
+
+    rep_genomes
+        .join(inferMarkers.out)
+        .set{ rep_inferred_markers }
+
+    rep_inferred_markers.view()
+
+    buildMarkerDB(
+        rep_inferred_markers.collect{ r -> r[2]},
+        rep_inferred_markers.collect{ r -> r[3]}
+    )
 
 }
-
 
 process annotateGenomes {
     label 'mem_low'
@@ -61,6 +74,8 @@ process annotateGenomes {
     tuple val(genome), val(species), val(representative), val(genome_is_representative)
 
     output:
+    /// can also make a big tuple with everything i need later on
+    // tuple val(genome), val(species), emit: input_annotation
     val(genome), emit: genome
     val(species), emit: species
     path("${genome}.gff"), emit: gff
@@ -93,6 +108,7 @@ process generateGeneFeatures {
     path(gff)
 
     output:
+    //make tuple: genome, species, gffdb, genomegenes
     path("${gff}.db")
     path("${genome}.genes")
 
@@ -137,6 +153,7 @@ process hmmMarkerSearch {
     path(ffn)
 
     output:
+    // all of these as a tuple
     val(genome), emit: genome
     val(species), emit: species
     path("${genome}.hmmsearch"), emit: hmmsearch
@@ -161,6 +178,7 @@ process inferMarkers {
     publishDir "${params.db_dir_path}/markers/${params.marker_set}/temp/${species}/${genome}"
 
     input:
+    //make tuple
     val(genome)
     val(species)
     path(hmmsearch)
@@ -172,7 +190,6 @@ process inferMarkers {
     // val(species), emit: species
     // path("${genome}.markers.fa"), emit: markers_fa
     // path("${genome}.markers.map"), emit: markers_map
-
 
     script:
 
