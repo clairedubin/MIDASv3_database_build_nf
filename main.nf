@@ -1,4 +1,7 @@
 #!/usr/bin/env nextflow
+
+
+
 nextflow.enable.dsl=2
 
 params.marker_set = "phyeco"
@@ -6,8 +9,11 @@ params.db_name = params.db_name
 params.db_dir = file(params.db_dir)
 params.vsearch_cluster_percents = [99, 95, 90, 85, 80, 75]
 
+include { ClusterCentroids as ClusterCentroids } from './modules/cluster_centroids'
+include { ClusterCentroids as ReClusterCentroids } from './modules/cluster_centroids' 
+
 // Ensure list is is descending order
-params.vsearch_cluster_percents_sorted = params.vsearch_cluster_percents.sort().reverse()
+params.vsearch_cluster_percents_sorted = params.vsearch_cluster_percents.sort()
 
 // Ensure --db_dir ends with trailing "/" characters
 if (!params.db_dir.endsWith("/")){
@@ -25,6 +31,7 @@ params.bin_path = workflow.launchDir + '/bin'
 // check that genome IDs are posix compliant
 // check that theres one rep genome per species
 // add size for grouptuple for efficiency
+// make has_ambiguous_bases a common function
 
 
 workflow {
@@ -76,20 +83,42 @@ workflow {
         cleaned_genes_by_species
     )
 
-
     Channel
         .fromList(params.vsearch_cluster_percents_sorted)
         .set{vsearch_cluster_ch}
 
-    // vsearch_cluster_ch.view()
-    // CombineCleanedGenes.out.view()
+    vsearch_cluster_ch
+        .max()
+        .combine(CombineCleanedGenes.out)
+        .set{max_cluster_ch}
 
-    // vsearch_cluster_ch.combine(CombineCleanedGenes.out).view()
-
-
+    // cluster based on highest clustering value
     ClusterCentroids(
-        vsearch_cluster_ch.combine(CombineCleanedGenes.out)
+       max_cluster_ch
+    ).set {max_cluster_output}
+
+
+    CleanCentroids(
+        max_cluster_output.species,
+        max_cluster_output.cluster_pct,
+        max_cluster_output.centroids_ffn
     )
+
+    // Recluster at lower 
+    max_cluster_val = params.vsearch_cluster_percents_sorted.max()
+    remaining_clusters_list = params.vsearch_cluster_percents_sorted.findAll {it != max_cluster_val}
+        
+    Channel
+        .fromList(remaining_clusters_list)
+        .combine(max_cluster_output.recluster_input)
+        .set{recluster_ch}
+
+    recluster_ch.view()
+
+    ReClusterCentroids(
+       recluster_ch
+    ).set {recluster_output}
+
 }
 
 process AnnotateGenomes {
@@ -256,6 +285,7 @@ process BuildMarkerDB {
     """
 }
 
+
 process CleanGenes {
     label 'mem_low_single_cpu'
     errorStrategy 'finish'
@@ -328,28 +358,44 @@ process CombineCleanedGenes {
 
 }
 
-process ClusterCentroids {
-    label 'mem_medium'
+process CleanCentroids {
+    label 'mem_low_single_cpu'
     errorStrategy 'finish'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/mtest'
     publishDir "${params.db_dir_path}/pangenomes/${species}/temp/vsearch/"
 
     input:
-    tuple val(cluster_pct), val(species), path(genes_ffn), path(genes_len)
-
+    val(species)
+    val(cluster_pct)
+    path(centroids_ffn)
 
     output:
-    path("centroids.${cluster_pct}.ffn")
-    path("uclust.${cluster_pct}.txt")
+    path("centroids.${cluster_pct}.clean.ffn")
+    path("centroids.${cluster_pct}.ambiguous.ffn")
 
+"""
+#!/usr/bin/env python3
 
-    script:
-    """
+import Bio.SeqIO
 
-    cluster_prop="\$(awk "BEGIN {printf \\"%.2f\\", ${cluster_pct} / 100}")"
+def has_ambiguous_bases(sequence):
+    # Check if sequence contains lower-case letters, which usually indicate soft-masked bases
+    ambiguous_bases = ['N', 'X', 'n', 'x']
+    return any(base in ambiguous_bases for base in sequence)
 
-    vsearch --cluster_fast ${genes_ffn} --id \${cluster_prop} --threads ${task.cpus} --centroids centroids.${cluster_pct}.ffn --uc uclust.${cluster_pct}.txt
+ffn_in = "${centroids_ffn}"
 
-    """
+output_ambiguous = ffn_in.replace('.ffn', '.ambiguous.ffn')
+output_clean = ffn_in.replace('.ffn', '.clean.ffn')
+with open(output_ambiguous, 'w') as o_ambiguous, \
+        open(output_clean, 'w') as o_clean:
+    for rec in Bio.SeqIO.parse(ffn_in, 'fasta'):
+        c_id = rec.id
+        c_seq = str(rec.seq).upper()
+        if has_ambiguous_bases(c_seq):
+            o_ambiguous.write(f">{c_id}\\n{c_seq}\\n")
+        else:
+            o_clean.write(f">{c_id}\\n{c_seq}\\n")
+
+"""
 }
-
