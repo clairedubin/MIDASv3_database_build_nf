@@ -1,5 +1,3 @@
-params.db_dir_path = '' // inherited from main workflow
-
 process ClusterCentroids {
     label 'mem_medium'
     errorStrategy 'finish'

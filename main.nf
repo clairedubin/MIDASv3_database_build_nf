@@ -1,19 +1,11 @@
 #!/usr/bin/env nextflow
 
-
-
 nextflow.enable.dsl=2
 
 params.marker_set = "phyeco"
 params.db_name = params.db_name
 params.db_dir = file(params.db_dir)
 params.vsearch_cluster_percents = [99, 95, 90, 85, 80, 75]
-
-include { ClusterCentroids as ClusterCentroids } from './modules/cluster_centroids'
-include { ClusterCentroids as ReClusterCentroids } from './modules/cluster_centroids' 
-
-// Ensure list is is descending order
-params.vsearch_cluster_percents_sorted = params.vsearch_cluster_percents.sort()
 
 // Ensure --db_dir ends with trailing "/" characters
 if (!params.db_dir.endsWith("/")){
@@ -25,6 +17,13 @@ if (!params.db_dir.endsWith("/")){
 params.genomes_tsv_path = (params.db_dir_path.concat("genomes.tsv"))
 params.marker_model_hmm = params.db_dir_path + "markers_models/" + params.marker_set + "/marker_genes.hmm"
 params.bin_path = workflow.launchDir + '/bin'
+
+include { ClusterCentroids as ClusterCentroids } from './modules/cluster_centroids' params(
+    db_dir_path: params.db_dir_path
+)
+include { ClusterCentroids as ReClusterCentroids } from './modules/cluster_centroids' params(
+    db_dir_path: params.db_dir_path
+)
 
 // TODO:
 // check that genome IDs are unique
@@ -84,10 +83,7 @@ workflow {
     )
 
     Channel
-        .fromList(params.vsearch_cluster_percents_sorted)
-        .set{vsearch_cluster_ch}
-
-    vsearch_cluster_ch
+        .fromList(params.vsearch_cluster_percents)
         .max()
         .combine(CombineCleanedGenes.out)
         .set{max_cluster_ch}
@@ -105,8 +101,8 @@ workflow {
     )
 
     // Recluster at lower 
-    max_cluster_val = params.vsearch_cluster_percents_sorted.max()
-    remaining_clusters_list = params.vsearch_cluster_percents_sorted.findAll {it != max_cluster_val}
+    max_cluster_val = params.vsearch_cluster_percents.max()
+    remaining_clusters_list = params.vsearch_cluster_percents.findAll {it != max_cluster_val}
         
     Channel
         .fromList(remaining_clusters_list)
