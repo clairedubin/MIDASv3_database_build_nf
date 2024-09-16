@@ -5,13 +5,20 @@ nextflow.enable.dsl=2
 params.marker_set = "phyeco"
 params.db_name = params.db_name
 params.db_dir = file(params.db_dir)
+params.midas_dir = '/wynton/protected/home/sirota/clairedubin/bin/MIDAS'
+
 params.vsearch_cluster_percents = [99, 95, 90, 85, 80, 75]
 
-// Ensure --db_dir ends with trailing "/" characters
+// Ensure --db_dir and --midas_dir ends with trailing "/" characters
 if (!params.db_dir.endsWith("/")){
     params.db_dir_path = params.db_dir.concat("/")
 } else {
     params.db_dir_path = params.db_dir
+}
+if (!params.midas_dir.endsWith("/")){
+    params.midas_dir_path = params.midas_dir.concat("/")
+} else {
+    params.midas_dir_path = params.midas_dir
 }
 
 params.genomes_tsv_path = (params.db_dir_path.concat("genomes.tsv"))
@@ -100,7 +107,7 @@ workflow {
         max_cluster_output.centroids_ffn
     )
 
-    // Recluster at lower 
+    // Recluster at lower thresholds
     max_cluster_val = params.vsearch_cluster_percents.max()
     remaining_clusters_list = params.vsearch_cluster_percents.findAll {it != max_cluster_val}
         
@@ -109,11 +116,22 @@ workflow {
         .combine(max_cluster_output.recluster_input)
         .set{recluster_ch}
 
-    recluster_ch.view()
-
     ReClusterCentroids(
-       recluster_ch
-    ).set {recluster_output}
+       recluster_ch).set {recluster_output}
+
+    recluster_output.parse_centroid_input
+        .concat(max_cluster_output.parse_centroid_input)
+        .groupTuple(by: 0)
+        .set {uclust_to_parse}
+
+    ParseCentroidInfo(uclust_to_parse)
+
+    ParseCentroidInfo.out
+    .join(CleanCentroids.out)
+    .join(CombineCleanedGenes.out)
+    .set{pipeline_input}
+
+    RunPipelineScript(pipeline_input)
 
 }
 
@@ -366,8 +384,7 @@ process CleanCentroids {
     path(centroids_ffn)
 
     output:
-    path("centroids.${cluster_pct}.clean.ffn")
-    path("centroids.${cluster_pct}.ambiguous.ffn")
+    tuple val(species), path("centroids.${cluster_pct}.clean.ffn"), path("centroids.${cluster_pct}.ambiguous.ffn")
 
 """
 #!/usr/bin/env python3
@@ -394,4 +411,70 @@ with open(output_ambiguous, 'w') as o_ambiguous, \
             o_clean.write(f">{c_id}\\n{c_seq}\\n")
 
 """
+}
+
+
+process ParseCentroidInfo {
+
+    label 'mem_low_single_cpu'
+    errorStrategy 'finish'
+    conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/MIDASv3'
+    publishDir "${params.db_dir_path}/pangenomes/${species}/temp/vsearch/"
+
+    input:
+    tuple val(species), path('uclust.*.txt')
+
+    output:
+    tuple val(species), path("gene_info.txt")
+
+    script:
+    """
+    #! /usr/bin/env bash
+    set -e
+    set -x
+
+    python3 ${params.bin_path}/parse_centroids.py uclust.*.txt
+    """
+}
+
+
+
+process RunPipelineScript {
+
+    label 'mem_medium'
+    errorStrategy 'finish'
+    conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/mtest'
+    publishDir "${params.db_dir_path}/pangenomes/${species}/temp/cdhit/"
+    
+    input:
+    tuple val(species), path(gene_info), path(clean_centroids), path(amb_centroids), path(genes_ffn), path(genes_len)
+
+    // output:
+    // // all of these as a tuple
+    // val(genome), emit: genome
+    // val(species), emit: species
+    // path("${genome}.hmmsearch"), emit: hmmsearch
+    // path(ffn)
+
+    script:
+    """
+    #! /usr/bin/env bash
+    set -e
+    set -x
+    
+    bash ${params.bin_path}/pipeline.sh \
+        ${species} \
+        ${gene_info} \
+        ${clean_centroids} \
+        ${amb_centroids} \
+        ${genes_ffn} \
+        ${genes_len} \
+        ${task.cpus} \
+        ${task.memory.toMega()} \
+        "${params.midas_dir_path}bin" \
+
+    """
+
+
+
 }

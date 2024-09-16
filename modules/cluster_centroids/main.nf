@@ -10,6 +10,7 @@ process ClusterCentroids {
 
     output:
     tuple val(species), path("centroids.${cluster_pct}.ffn"), path(genes_len), emit: recluster_input
+    tuple val(species), path("uclust.${cluster_pct}.txt"), emit: parse_centroid_input
     val species, emit: species
     val cluster_pct, emit: cluster_pct
     path("centroids.${cluster_pct}.ffn"), emit: centroids_ffn
