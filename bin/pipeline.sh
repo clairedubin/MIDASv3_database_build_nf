@@ -48,7 +48,7 @@ thread2=$((total_threads / 2))
 
 
 ####### OUTPUTS
-out_dir="."
+out_dir=$(pwd)
 
 # out_dir="${species_dir}/temp/cdhit"
 # mkdir -p ${out_dir}
@@ -114,8 +114,8 @@ cdhit_centroids_ffn="${info_dir}/cdhit_centroids.ffn"
 cdhit_centroids_tsv="${info_dir}/cdhit_centroids.tsv"
 if [[ ! -e "${cdhit_centroids_tsv}" ]]; then
   ##### Input: vsearch_centroids_ffn
-  cp ${vsearch_centroids_ffn} "${cdhit_dir}/vsearch_centroids.ffn"
   pushd ${cdhit_dir}
+  cp ${vsearch_centroids_ffn} "${cdhit_dir}/vsearch_centroids.ffn"
 
   # rename the input fasta with a short and save the mapping file
   awk '/^>/{$0=">g"++i; }1' vsearch_centroids.ffn > vsearch_centroids_renamed.ffn
@@ -174,12 +174,12 @@ fi
 
 is_success="${out_dir}/PIPELINE_SUCCESS"
 if [[ ! -e ${is_success} ]]; then
-  awk '{ if ($0 ~ /^>/) {print $0} else {print toupper($0)}}' ${cdhit_centroids_ffn} > ${out_dir}/centroids.99.ffn
+  awk '{ if ($0 ~ /^>/) {print $0} else {print toupper($0)}}' ${cdhit_centroids_ffn} > ${out_dir}/centroids.99.refined.ffn
   seqkit grep -w 0 -f ${info_dir}/list_of_cdhit_genes ${genes_ffn} > ${out_dir}/genes.ffn
   cp ${gene_info_cdhit} "${out_dir}/gene_info.txt" #<--
-  grep -Fwf <(cut -f1 ${gene_info_cdhit}) ${genes_len} > "${out_dir}/genes.len"
+  grep -Fwf <(cut -f1 ${gene_info_cdhit}) ${genes_len} > "${out_dir}/genes.len.txt"
 
-  if [ -s ${out_dir}/centroids.99.ffn ]; then
+  if [ -s ${out_dir}/centroids.99.refined.ffn ]; then
     touch $is_success
   fi
 fi

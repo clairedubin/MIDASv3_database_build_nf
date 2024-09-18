@@ -88,7 +88,6 @@ def read_uclust_info(centroid_info, uclust_file, percent_id):
 
 if __name__ == "__main__":
 
-    n = len(sys.argv)
     uclust_files = sys.argv[1:]
 
     cluster_files = {}

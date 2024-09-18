@@ -28,7 +28,13 @@ params.bin_path = workflow.launchDir + '/bin'
 include { ClusterCentroids as ClusterCentroids } from './modules/cluster_centroids' params(
     db_dir_path: params.db_dir_path
 )
-include { ClusterCentroids as ReClusterCentroids } from './modules/cluster_centroids' params(
+include { ClusterCentroids as ClusterCentroidsLowerThresholds } from './modules/cluster_centroids' params(
+    db_dir_path: params.db_dir_path
+)
+include { ReClusterCentroids as ReClusterCentroids } from './modules/cluster_centroids' params(
+    db_dir_path: params.db_dir_path
+)
+include { ReClusterCentroids as ReClusterCentroidsLowerThresholds } from './modules/cluster_centroids' params(
     db_dir_path: params.db_dir_path
 )
 
@@ -38,6 +44,11 @@ include { ClusterCentroids as ReClusterCentroids } from './modules/cluster_centr
 // check that theres one rep genome per species
 // add size for grouptuple for efficiency
 // make has_ambiguous_bases a common function
+// add outputs for pipeline.sh
+// edit directories/outputs in pipeline.sh for speed/redundancy
+// check that output files are not empty
+
+
 
 
 workflow {
@@ -69,7 +80,7 @@ workflow {
     ParseHMMMarkers(HMMMarkerSearch.out)
 
     rep_genomes
-        .join(ParseHMMMarkers.out)
+        .join(ParseHMMMarkers.out, by: 1)
         .set{ rep_inferred_markers }
 
     BuildMarkerDB(
@@ -83,28 +94,24 @@ workflow {
         AnnotateGenomes.out.ffn
         )
 
-    CleanGenes.out.groupTuple(by: 1).set {cleaned_genes_by_species}
+    CleanGenes.out.groupTuple(by: 1).set{cleaned_genes_by_species}
 
-    CombineCleanedGenes(
-        cleaned_genes_by_species
-    )
+    CombineCleanedGenes(cleaned_genes_by_species)
 
     Channel
         .fromList(params.vsearch_cluster_percents)
         .max()
-        .combine(CombineCleanedGenes.out)
+        .combine(CombineCleanedGenes.out.genes_ffn)
         .set{max_cluster_ch}
 
-    // cluster based on highest clustering value
-    ClusterCentroids(
-       max_cluster_ch
-    ).set {max_cluster_output}
 
+    // cluster based on highest clustering value
+    ClusterCentroids(max_cluster_ch)
+        .set {max_cluster_output}
 
     CleanCentroids(
-        max_cluster_output.species,
-        max_cluster_output.cluster_pct,
-        max_cluster_output.centroids_ffn
+        max_cluster_output.centroid_ffn,
+        max_cluster_output.cluster_pct
     )
 
     // Recluster at lower thresholds
@@ -113,25 +120,58 @@ workflow {
         
     Channel
         .fromList(remaining_clusters_list)
-        .combine(max_cluster_output.recluster_input)
-        .set{recluster_ch}
+        .combine(max_cluster_output.centroid_ffn)
+        .set{lower_cluster_ch}
 
-    ReClusterCentroids(
-       recluster_ch).set {recluster_output}
+    ClusterCentroidsLowerThresholds(lower_cluster_ch)
+        .set {lower_cluster_output}
 
-    recluster_output.parse_centroid_input
-        .concat(max_cluster_output.parse_centroid_input)
+    lower_cluster_output.uclust
+        .concat(max_cluster_output.uclust)
         .groupTuple(by: 0)
         .set {uclust_to_parse}
 
     ParseCentroidInfo(uclust_to_parse)
 
     ParseCentroidInfo.out
-    .join(CleanCentroids.out)
-    .join(CombineCleanedGenes.out)
-    .set{pipeline_input}
+        .join(CleanCentroids.out)
+        .join(CombineCleanedGenes.out.genes_ffn)
+        .join(CombineCleanedGenes.out.genes_len)
+        .set{pipeline_input}
 
-    RunPipelineScript(pipeline_input)
+    RefineClusters(pipeline_input)
+
+    // Recluster at lower thresholds        
+    Channel
+        .fromList(remaining_clusters_list)
+        .combine(RefineClusters.out.centroid_ffn)
+        .set{lower_cluster_refine_ch}
+
+    ReClusterCentroidsLowerThresholds(lower_cluster_refine_ch)
+
+    ParseHMMMarkers.out
+        .map{ r -> tuple(r[0], r[3])}
+        .groupTuple(by: 0)
+        .set{markers_per_species}
+
+    max_cluster_ch = Channel.of(max_cluster_val)
+
+    RefineClusters.out.gene_files
+        .combine(ReClusterCentroidsLowerThresholds.out.uclust.groupTuple(by: 0), by: 0)
+        .combine(markers_per_species, by: 0)
+        .combine(max_cluster_ch)
+        .set{recluster_to_parse}
+
+    ParseReclusteredCentroidInfo(recluster_to_parse)
+
+    // max_cluster_val = max_percent
+    // RefineClusters.out.gene_files is species, genes.len, and gene_info.txt
+    // lower_cluster_refine_output.uclust is species and uclust*txt
+    // ParseHMMMarkers.out is species, genome_name, .markers.fa, .markers.map for each genome
+
+
+    
+
 
 }
 
@@ -256,7 +296,7 @@ process ParseHMMMarkers {
     path(ffn)
 
     output:
-    tuple val(genome), path("${genome}.markers.fa"), path("${genome}.markers.map")
+    tuple val(species), val(genome), path("${genome}.markers.fa"), path("${genome}.markers.map") 
 
     script:
 
@@ -292,8 +332,8 @@ process BuildMarkerDB {
     set -e
     set -x
 
-    cat *.markers.fa >> phyeco.fa
-    cat *.markers.fa >> phyeco.map
+    cat *.markers.fa > phyeco.fa
+    cat *.markers.fa > phyeco.map
 
     hs-blastn index phyeco.fa
     """
@@ -304,6 +344,8 @@ process CleanGenes {
     label 'mem_low_single_cpu'
     errorStrategy 'finish'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/mtest'
+    publishDir "${params.db_dir_path}/gene_annotations/${species}/${genome}", mode: "copy"
+
 
     input:
     val(genome)
@@ -347,27 +389,32 @@ process CombineCleanedGenes {
     label 'mem_low_single_cpu'
     errorStrategy 'finish'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/mtest'
-    publishDir "${params.db_dir_path}/pangenomes/${species}/temp/vsearch"
+    publishDir "${params.db_dir_path}/pangenomes/${species}/temp/vsearch", mode: "copy"
 
     input:
-    tuple val(genome), val(species), path('*.genes.ffn'), path('*.genes.len')
+    tuple val(genome), val(species), path(gene_ffns), path(gene_lens)
 
     output:
-    tuple val(species), path("genes.ffn"), path("genes.len")
-    // val(species), emit: species
-    // path("genes.ffn"), emit: genes_ffn
-    // path("genes.len"), emit: genes_len
+    tuple val(species), path("genes.ffn"), emit: genes_ffn
+    tuple val(species), path("genes.len"), emit: genes_len
 
 
     script:
     """
     #! /usr/bin/env bash
     set -e
-    set -x
 
-    cat *.genes.ffn >> genes.ffn
-    cat *.genes.len >> genes.len
+    cat ${gene_ffns} > genes.ffn
+    cat ${gene_lens} > genes.len
     
+    if [ ! -s 'genes.ffn' ]; then
+        echo ERROR: genes.ffn is empty
+        exit 1 
+    elif [ ! -s 'genes.len' ]; then
+        echo ERROR: genes.len is empty
+        exit 1 
+
+    fi
     """
 
 }
@@ -379,9 +426,9 @@ process CleanCentroids {
     publishDir "${params.db_dir_path}/pangenomes/${species}/temp/vsearch/"
 
     input:
-    val(species)
+    tuple val(species), path(centroid_ffn)
     val(cluster_pct)
-    path(centroids_ffn)
+
 
     output:
     tuple val(species), path("centroids.${cluster_pct}.clean.ffn"), path("centroids.${cluster_pct}.ambiguous.ffn")
@@ -390,13 +437,16 @@ process CleanCentroids {
 #!/usr/bin/env python3
 
 import Bio.SeqIO
+import os
 
 def has_ambiguous_bases(sequence):
     # Check if sequence contains lower-case letters, which usually indicate soft-masked bases
     ambiguous_bases = ['N', 'X', 'n', 'x']
     return any(base in ambiguous_bases for base in sequence)
 
-ffn_in = "${centroids_ffn}"
+ffn_in = "${centroid_ffn}"
+
+assert os.path.getsize(ffn_in) > 0
 
 output_ambiguous = ffn_in.replace('.ffn', '.ambiguous.ffn')
 output_clean = ffn_in.replace('.ffn', '.clean.ffn')
@@ -422,7 +472,7 @@ process ParseCentroidInfo {
     publishDir "${params.db_dir_path}/pangenomes/${species}/temp/vsearch/"
 
     input:
-    tuple val(species), path('uclust.*.txt')
+    tuple val(species), path(uclust_files)
 
     output:
     tuple val(species), path("gene_info.txt")
@@ -433,13 +483,14 @@ process ParseCentroidInfo {
     set -e
     set -x
 
-    python3 ${params.bin_path}/parse_centroids.py uclust.*.txt
+    python3 ${params.bin_path}/parse_centroids.py ${uclust_files}
+
     """
 }
 
 
 
-process RunPipelineScript {
+process RefineClusters {
 
     label 'mem_medium'
     errorStrategy 'finish'
@@ -449,12 +500,10 @@ process RunPipelineScript {
     input:
     tuple val(species), path(gene_info), path(clean_centroids), path(amb_centroids), path(genes_ffn), path(genes_len)
 
-    // output:
-    // // all of these as a tuple
-    // val(genome), emit: genome
-    // val(species), emit: species
-    // path("${genome}.hmmsearch"), emit: hmmsearch
-    // path(ffn)
+    output:
+    tuple val(species), path("centroids.*.refined.ffn"), emit: centroid_ffn 
+    tuple val(species), path("genes.len.txt"), path("gene_info.txt"), emit: gene_files    
+    path("genes.ffn")
 
     script:
     """
@@ -473,8 +522,43 @@ process RunPipelineScript {
         ${task.memory.toMega()} \
         "${params.midas_dir_path}bin" \
 
+
+    if [ ! -e PIPELINE_SUCCESS ]; then
+        echo ERROR: Cluster refinement not complete
+        exit 1 
+    fi
+
     """
+}
+
+process ParseReclusteredCentroidInfo {
+
+    label 'mem_low_single_cpu'
+    errorStrategy 'finish'
+    conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/MIDASv3'
+    publishDir "${params.db_dir_path}/pangenomes/${species}/", mode: "copy"
+
+    input:
+    tuple val(species), path(genes_len), path(genes_info), path(uclust_files), path(marker_map_files), val(max_percent)
 
 
+    output:
+    tuple val(species)
+    path("gene_info.txt")
+    path('genes_info.tsv')
 
+    script:
+    """
+    #! /usr/bin/env bash
+    set -e
+    set -x
+
+    python3 ${params.bin_path}/parse_reclustered_centroids.py \
+    -gene_info_file ${genes_info} \
+    -max_percent ${max_percent} \
+    -gene_length_file ${genes_len} \
+    -uclust_files ${uclust_files} \
+    -genome_marker_files ${marker_map_files}
+
+    """
 }
