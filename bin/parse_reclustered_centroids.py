@@ -178,7 +178,6 @@ if __name__ == "__main__":
         genome_name = f.replace('.markers.map','')
         mapfiles_by_genomes[genome_name] = f
 
-    print(mapfiles_by_genomes.values())
     cat_files(mapfiles_by_genomes.values(), "mapfile", 20)
     gene_to_marker = scan_mapfile("mapfile") # <gene_id, marker_id>
 
