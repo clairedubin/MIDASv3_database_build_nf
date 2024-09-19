@@ -191,10 +191,10 @@ if __name__ == "__main__":
 
     # write_contig_length(dict_of_contig_length, "contigs.len")
 
-    # for xx in cluster_thresholds:
-    #     centroid_xx = f"centroid_{xx}"
-    #     cluster_xx_info = generate_cluster_xx_info(genes_info, centroid_xx)
-    #     write_cxx_info(cluster_xx_info, f"clusters_{xx}_info.tsv")
+    for xx in cluster_thresholds:
+        centroid_xx = f"centroid_{xx}"
+        cluster_xx_info = generate_cluster_xx_info(genes_info, centroid_xx)
+        write_cxx_info(cluster_xx_info, f"clusters_{xx}_info.tsv")
 
     # Dont think these are ever used?
 

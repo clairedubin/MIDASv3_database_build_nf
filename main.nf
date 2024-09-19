@@ -10,10 +10,10 @@ params.eggnog_db_dir = '/wynton/group/sirota/clairedubin/eggnog'
 params.genomad_db_dir="/wynton/protected/home/sirota/clairedubin/databases/genomad_db"
 params.resfinder_db_dir="/wynton/protected/home/sirota/clairedubin/databases/resfinder_dbs"
 params.resfinder_env_path="/wynton/protected/home/sirota/clairedubin/envs/resfinder_env"
+params.blastn_path="/wynton/protected/home/sirota/clairedubin/bin/ncbi-blast-2.16.0+/bin/blastn"
 
 params.vsearch_cluster_percents = [99, 95, 90, 85, 80, 75]
 params.max_cluster_val = params.vsearch_cluster_percents.max()
-
 
 // Ensure --db_dir and --midas_dir ends with trailing "/" characters
 if (!params.db_dir.endsWith("/")){
@@ -40,12 +40,9 @@ include { ClusterCentroids as ClusterCentroidsLowerThresholds } from './modules/
 include { ReClusterCentroids as ReClusterCentroids } from './modules/cluster_centroids' params(
     db_dir_path: params.db_dir_path
 )
-include { ReClusterCentroids as ReClusterCentroidsLowerThresholds } from './modules/cluster_centroids' params(
-    db_dir_path: params.db_dir_path
-)
-
 
 // TODO:
+// check existence/formatting of genomes.tsv
 // check that genome IDs are unique
 // check that genome IDs are posix compliant
 // check that theres one rep genome per species
@@ -54,9 +51,8 @@ include { ReClusterCentroids as ReClusterCentroidsLowerThresholds } from './modu
 // add outputs for pipeline.sh
 // edit directories/outputs in pipeline.sh for speed/redundancy
 // check that output files are not empty
-//fix hard coded git paths in RunResFinder
-
-
+// fix hard coded git paths and loading blast module in RunResFinder
+// check existence of databases
 
 
 workflow {
@@ -66,10 +62,7 @@ workflow {
         .splitCsv(header: true, sep: '\t')
         .map { row -> tuple(row.genome, row.species, row.representative, row.genome_is_representative) } 
 
-    // get just representative genomes
-    genomes.filter { r -> (r[3] == "1") }
-        .map{ r -> tuple(r[0], r[1]) }
-        .set{ rep_genomes }
+    //// ANNOTATION ////
 
     AnnotateGenomes(genomes)
     
@@ -77,15 +70,39 @@ workflow {
         AnnotateGenomes.out.genome, 
         AnnotateGenomes.out.species, 
         AnnotateGenomes.out.gff)
-    
+
+    CleanGenes(
+        AnnotateGenomes.out.genome,
+        AnnotateGenomes.out.species,
+        AnnotateGenomes.out.ffn
+        )
+
+    CombineCleanedGenes(CleanGenes.out.groupTuple(by: 1))
+
+    RunGeNomad(AnnotateGenomes.out.fna_tuple)
+    RunMEFinder(AnnotateGenomes.out.fna_tuple)
+    RunResFinder(AnnotateGenomes.out.fna_tuple)
+
+    CalculateContigLength(
+        AnnotateGenomes.out.fna_tuple
+            .groupTuple(by: 1)
+            .map{ r -> tuple(r[1], r[2])}
+            )
+
+    //// BUILD MARKER DB ////
+
     HMMMarkerSearch(
         AnnotateGenomes.out.genome, 
         AnnotateGenomes.out.species, 
         AnnotateGenomes.out.faa, 
         AnnotateGenomes.out.ffn)
 
-    // TODO: add a comment about what is in HMMMarkerSearch.out tuple
     ParseHMMMarkers(HMMMarkerSearch.out)
+
+    // get only representative genomes
+    genomes.filter { r -> (r[3] == "1") }
+        .map{ r -> tuple(r[0], r[1]) }
+        .set{ rep_genomes }
 
     rep_genomes
         .join(ParseHMMMarkers.out, by: 1)
@@ -96,23 +113,12 @@ workflow {
         rep_inferred_markers.collect{ r -> r[3]}
     )
 
-    CleanGenes(
-        AnnotateGenomes.out.genome,
-        AnnotateGenomes.out.species,
-        AnnotateGenomes.out.ffn
-        )
+    //// CLUSTERING ////
 
-
-    CleanGenes.out.groupTuple(by: 1).set{cleaned_genes_by_species}
-
-    CombineCleanedGenes(cleaned_genes_by_species)
-
+    //Initial clustering based on highest clustering value (usually 99)
     Channel.of(params.max_cluster_val)
         .combine(CombineCleanedGenes.out.genes_ffn)
         .set{max_cluster_ch}
-
-
-    // cluster based on highest clustering value
     ClusterCentroids(max_cluster_ch)
         .set {max_cluster_output}
 
@@ -121,7 +127,7 @@ workflow {
         max_cluster_output.cluster_pct
     )
 
-    // Recluster at lower thresholds
+    // Clustering C99 output at lower thresholds
     remaining_clusters_list = params.vsearch_cluster_percents.findAll {it != params.max_cluster_val}
         
     Channel
@@ -143,17 +149,17 @@ workflow {
         .join(CleanCentroids.out)
         .join(CombineCleanedGenes.out.genes_ffn)
         .join(CombineCleanedGenes.out.genes_len)
-        .set{pipeline_input}
+        .set{refine_clusters_input}
 
-    RefineClusters(pipeline_input)
+    RefineClusters(refine_clusters_input)
 
-    // Recluster at lower thresholds        
+    // Redoing clustering at lower thresholds        
     Channel
         .fromList(remaining_clusters_list)
         .combine(RefineClusters.out.centroid_ffn)
         .set{lower_cluster_refine_ch}
 
-    ReClusterCentroidsLowerThresholds(lower_cluster_refine_ch)
+    ReClusterCentroids(lower_cluster_refine_ch)
 
     ParseHMMMarkers.out
         .map{ r -> tuple(r[0], r[3])}
@@ -161,7 +167,7 @@ workflow {
         .set{markers_per_species}
 
     RefineClusters.out.gene_files
-        .combine(ReClusterCentroidsLowerThresholds.out.uclust.groupTuple(by: 0), by: 0)
+        .combine(ReClusterCentroids.out.uclust.groupTuple(by: 0), by: 0)
         .combine(markers_per_species, by: 0)
         .set{recluster_to_parse}
 
@@ -169,19 +175,29 @@ workflow {
 
     AugmentPangenomes(ParseReclusteredCentroidInfo.out)
         
-    CalculateContigLength(
-        AnnotateGenomes.out.fna_tuple.groupTuple(by: 1).map{ r -> tuple(r[1], r[2])})
+    ////// EGGNOG ANNOTATION OF CENTROIDS ////
 
     RunEggNog(RefineClusters.out.max_centroid_ffn)
     
-    RunGeNomad(AnnotateGenomes.out.fna_tuple)
-    RunMEFinder(AnnotateGenomes.out.fna_tuple)
-    RunResFinder(AnnotateGenomes.out.fna_tuple)
+    //// COMBINE ANNOTATION RESULTS ////
 
+    GenerateGeneFeatures.out.genes
+        .combine(RunMEFinder.out, by: 0)
+        .combine(RunResFinder.out, by: 0)
+        .combine(RunGeNomad.out.genomad_gene_files, by: 0)
+        .map{it.swap(1,0)} //swap order of genome and species to match first column of following channels
+        .join(CalculateContigLength.out, by: 0)
+        .join(RunEggNog.out, by: 0)
+        .join(AugmentPangenomes.out.max_cluster_info, by: 0)
+        .map{it.swap(1,0)} //swap back genome and species
+        .set{annotations_to_parse}
+
+    annotations_to_parse.view()
+    // ParsePangenomeAnnotations(annotations_to_parse)
 }
 
 process AnnotateGenomes {
-    label 'mem_low'
+    label 'mem_high'
     errorStrategy 'finish'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/mtest'
     publishDir "${params.db_dir_path}/gene_annotations/${species}/${genome}", mode: "copy"
@@ -286,7 +302,6 @@ process HMMMarkerSearch {
     """
 }
 
-
 process ParseHMMMarkers {
     label 'mem_low_single_cpu'
     errorStrategy 'finish'
@@ -311,7 +326,6 @@ process ParseHMMMarkers {
     set -x
 
     python3 ${params.bin_path}/infer_markers.py --genome ${genome} --species ${species} --hmmsearch_file ${hmmsearch} --annotation_ffn ${ffn}
-    
     """
 
 }
@@ -344,13 +358,13 @@ process BuildMarkerDB {
     """
 }
 
-
 process CleanGenes {
+
+    //this is slow
     label 'mem_low_single_cpu'
     errorStrategy 'finish'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/mtest'
     publishDir "${params.db_dir_path}/gene_annotations/${species}/${genome}", mode: "copy"
-
 
     input:
     val(genome)
@@ -386,7 +400,6 @@ with open(output_genes, 'w') as o_genes, \
         else:
             o_genes.write(f">{gene_id}\\n{gene_seq}\\n")
             o_info.write(f"{gene_id}\\t{genome_id}\\t{gene_len}\\n")
-
 """
 }
 
@@ -410,8 +423,8 @@ process CombineCleanedGenes {
     set -e
     set -x
 
-    cat ${gene_ffns} > "genes.ffn"
-    cat ${gene_lens} > "genes.len"
+    cat ${gene_ffns} > genes.ffn
+    cat ${gene_lens} > genes.len
     
     if [ ! -s 'genes.ffn' ]; then
         echo ERROR: genes.ffn is empty
@@ -422,7 +435,6 @@ process CombineCleanedGenes {
 
     fi
     """
-
 }
 
 process CleanCentroids {
@@ -465,10 +477,8 @@ with open(output_ambiguous, 'w') as o_ambiguous, \
             o_ambiguous.write(f">{c_id}\\n{c_seq}\\n")
         else:
             o_clean.write(f">{c_id}\\n{c_seq}\\n")
-
 """
 }
-
 
 process ParseCentroidInfo {
 
@@ -490,11 +500,8 @@ process ParseCentroidInfo {
     set -x
 
     python3 ${params.bin_path}/parse_centroids.py ${uclust_files}
-
     """
 }
-
-
 
 process RefineClusters {
 
@@ -543,7 +550,6 @@ process RefineClusters {
     fi
 
     cp "centroids.${params.max_cluster_val}.refined.ffn" "centroids.ffn"
-
     """
 }
 
@@ -584,10 +590,11 @@ process AugmentPangenomes {
     publishDir "${params.db_dir_path}/pangenomes/${species}/augment/", mode: "copy"
 
     input:
-    tuple val(species), path(gene_info_tsv), path(fna_list)
+    tuple val(species), path(gene_info_tsv)
 
     output:
-    tuple val(species), path('clusters_{xx}_info.tsv')
+    tuple val(species), path("clusters_${params.max_cluster_val}_info.tsv"), emit: max_cluster_info
+    path('clusters_*_info.tsv')
 
     script:
     """
@@ -639,7 +646,7 @@ process RunEggNog {
     tuple val(species), path(max_centroid_ffn)
 
     output:
-    val(species), path("${species_id}.emapper.annotations")
+    tuple val(species), path("${species_id}.emapper.annotations")
 
     script:
     """
@@ -669,9 +676,8 @@ process RunGeNomad {
 
     output:
     tuple val(genome), val(species), \
-    path("${genome}_summary/GCA_007135585.1_virus_genes.tsv"), 
-    path("${genome}_summary/GCA_007135585.1_plasmid_genes.tsv"), emit: genomad_gene_files
-
+    path("${genome}_summary/${genome}_virus_genes.tsv"),  \
+    path("${genome}_summary/${genome}_plasmid_genes.tsv"), emit: genomad_gene_files
     path("${genome}_*")
 
     script:
@@ -724,66 +730,47 @@ process RunResFinder {
     """
     #! /usr/bin/env bash
     set -e
+    
     export GIT_PYTHON_GIT_EXECUTABLE="/wynton/protected/home/sirota/clairedubin/bin/git-2.39.5/git"
     export PATH=$PATH:/wynton/protected/home/sirota/clairedubin/bin/git-2.39.5
     source ${params.resfinder_env_path}/bin/activate
-    
-    python -m resfinder -ifa ${fna} -o resfinder_output \
-    -s Other -l 0.6 -t 0.8 --acquired -db_res ${params.resfinder_db_dir}/resfinder_db \
-    -d -db_disinf ${params.resfinder_db_dir}/disinfinder_db
+    module load CBI blast
+
+    python -m resfinder \
+        -ifa ${fna} \
+        -o . \
+        -s Other \
+        -l 0.6 \
+        -t 0.8 \
+        --acquired \
+        -db_res ${params.resfinder_db_dir}/resfinder_db \
+        -d -db_disinf ${params.resfinder_db_dir}/disinfinder_db \
+        -b ${params.blastn_path}
 
     """
 }
-
 
 process ParsePangenomeAnnotations {
 
     label 'mem_low_single_cpu'
     errorStrategy 'finish'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/MIDASv3'
-    // publishDir "${params.db_dir_path}/pangenomes_annotation/03_processed/${species}/", mode: "copy"
-    //     "panannot_tempfile":             f"pangenomes_annotation/03_processed/{species_id}/{component}/{genome_id}",
-    // // publishDir (
-    // //     path: "${params.db_dir_path}/pangenomes_annotation/03_processed/${species}/",
-    // //     mode: "copy",
-    // //     saveAs: { fn ->
-    // //         if (fn.startsWith("A.tab")) { "genomad_virus/${genome}/${fn}" }
-    // //         if (fn.startsWith("A.tab")) { "genomad_virus/${genome}/${fn}" }
-    // //         if (fn.startsWith("A.tab")) { "genomad_virus/${genome}/${fn}" }
-    // //         if (fn.startsWith("A.tab")) { "genomad_virus/${genome}/${fn}" }
-    // //         if (fn.startsWith("A.tab")) { "genomad_virus/${genome}/${fn}" }
-    // //         else { "unassigned/${fn}" }
-    // //     }
-    // // )
-//        "resfinder_results":             f"pangenomes_annotation/01_mge/{species_id}/{genome_id}/resfinder_output/ResFinder_results_tab.txt",
-        // "mefinder_results":              f"pangenomes_annotation/01_mge/{species_id}/{genome_id}/mefinder_output/mefinder.csv",
-//         "genomad_virus_genes":           f"pangenomes_annotation/01_mge/{species_id}/{genome_id}/genomad_output/{genome_id}_summary/{genome_id}_virus_genes.tsv",
-//         "genomad_plasmid_genes":         f"pangenomes_annotation/01_mge/{species_id}/{genome_id}/genomad_output/{genome_id}_summary/{genome_id}_plasmid_genes.tsv",
-
-    // cleangenes.out: val(genome), val(species), path("${genome}.genes.ffn")
-// mefinder.out: genome, species, mefinder
-// resfinder.out: genome, species, resfinder
-// rungenomad.out.genomad_gene_files: genome, species, virus genes, plasmid genes
-    // CalculateContigLength.out: species, "contigs.len"
-
-CleanGenes.out.genes
-    .join(RunMEFinder.out, by: [0, 1])
-    .join(RunResFinder.out, by: [0, 1])
-    .join(RunGeNomad.out, by: [0, 1])
-    .map{it.swap(1,0)} //swap order of genome and species
-    .join(CalculateContigLength.out, by: 0)
-    .join(RunEggNog.out, by: 0)
-    .join(AugmentPangenomes.out, by: 0)
-
+    publishDir "${params.db_dir_path}/pangenomes_annotations/temp", mode: "copy"
 
     input:
-    tuple val(genome), val(species), path(genes_file), \
-    path(mefinder_csv), path(resfinder_txt), \
-    path(genomad_virus), path(genomad_plasmid), \
-    path(contig_len_file), path(eggnog_results), path(max_cluster_info)
+    tuple val(genome) \
+    val(species) \
+    path(genes_file) \
+    path(mefinder_csv) \
+    path(resfinder_txt) \
+    path(genomad_virus) \
+    path(genomad_plasmid) \
+    path(contig_len_file) \
+    path(eggnog_results) \
+    path(max_cluster_info) \
 
     output:
-    tuple val(species), 
+    val(species)
 
     script:
     """
@@ -800,57 +787,8 @@ CleanGenes.out.genes
     --resfinder_txt ${resfinder_txt} \
     --genomad_virus_file ${genomad_virus} \
     --genomad_plasmid_file ${genomad_plasmid} \
-    --max_cluster_info_file ${max_cluster_info}
+    --max_cluster_info_file ${max_cluster_info} \
     --eggnog_results_file ${eggnog_results}
+
     """
 }
-
-
-
-    
-
-    // --eggnog_results_file ${eggnog_results} 
-    // --max_cluster_info_file ${max_cluster_info} \
-
-
-// process ParseEggNogAnnotations {
-//     label 'mem_low_single_cpu'
-//     errorStrategy 'finish'
-//     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/mtest'
-//     publishDir "${params.db_dir_path}/pangenomes/${species}/temp/vsearch/", mode: "copy"
-
-//     input:
-//     tuple val(genome), val(species), path(max_cluster_info_file), \
-//     path(contig_len_file), path(genes_file), path(eggnog_results_file)
-
-//     output:
-//     tuple val(species), path("eggnog/${genome}")
-
-// """
-// #!/usr/bin/env python3
-
-// import pandas as pd
-
-// genome_id = ${genome}
-// species_id = ${species}
-// cluster_info_fp = ${max_cluster_info_file}
-// contig_len_fp = ${contig_len_file}
-// gene_feature_fp = ${genes_file}
-// eggnog_results_file = ${eggnog_results_file}
-
-// contig_len = pd.read_csv(contig_len_fp, sep='\t')
-// gene_features = pd.read_csv(gene_feature_fp, sep='\t')
-
-// centroids_99 = pd.read_csv(cluster_info_fp, sep='\t', usecols=[0]) # Only keep the list of centroid_99
-// centroids_99 = pd.merge(centroids_99, gene_features, left_on='centroid_99', right_on='gene_id', how='inner')
-// centroids_99 = pd.merge(centroids_99, contig_len[['contig_id', 'contig_length']], left_on='contig_id', right_on='contig_id', how='inner')
-// centroids_99 = centroids_99[['contig_id', 'start', 'end', 'centroid_99', 'strand', 'gene_type', 'contig_length']]
-
-// df = scan_eggnog(eggnog_results_file)
-// local_dest = f"eggnog/{genome_id}"
-// merged_df  = df.merge(centroids_99, left_on='#query', right_on='centroid_99', how='inner')
-// merged_df = merged_df.drop(columns=['centroid_99'])
-// merged_df.to_csv(local_dest, sep='\t', index=False, header=False)
-
-// """
-// }

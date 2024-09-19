@@ -1,12 +1,11 @@
 process ClusterCentroids {
-    label 'mem_medium'
+    label 'mem_high'
     errorStrategy 'finish'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/mtest'
     publishDir "${params.db_dir_path}/pangenomes/${species}/temp/vsearch/", mode: "copy"
 
     input:
     tuple val(cluster_pct), val(species), path(genes_ffn)
-
 
     output:
     tuple val(species), path("centroids.${cluster_pct}.ffn"), emit: centroid_ffn
@@ -32,7 +31,7 @@ process ClusterCentroids {
 }
 
 process ReClusterCentroids {
-    label 'mem_medium'
+    label 'mem_high'
     errorStrategy 'finish'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/mtest'
     publishDir "${params.db_dir_path}/pangenomes/${species}/temp/cdhit", mode: "copy"
@@ -54,7 +53,6 @@ process ReClusterCentroids {
 
     cluster_prop="\$(awk "BEGIN {printf \\"%.2f\\", ${cluster_pct} / 100}")"
     vsearch --cluster_fast ${genes_ffn} --id \${cluster_prop} --threads ${task.cpus} --centroids centroids.${cluster_pct}.ffn --uc uclust.${cluster_pct}.txt
-
 
     """
 }
