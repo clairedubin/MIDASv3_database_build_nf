@@ -7,7 +7,14 @@ profiles {
         memory = 1.GB
         time = '1h'
         clusterOptions = '-S /bin/bash'
-
+        withLabel: 'mem_high' {
+          cpus = 8
+	        memory = { 8.GB * task.attempt }
+          time = '24h'
+	        maxRetries = 3
+	        clusterOptions = { " -S /bin/bash -R y -l h_vmem=${task.memory.toString().replaceAll(/[\sB]/,'')}" } 
+      
+        }
         withLabel: 'mem_medium' {
           cpus = 4
 	        memory = { 8.GB * task.attempt }
