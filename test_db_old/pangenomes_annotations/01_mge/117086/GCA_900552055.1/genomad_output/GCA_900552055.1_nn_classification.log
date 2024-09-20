@@ -1,0 +1,44 @@
+╭──────────────────────────────────────────────────────────────────────────────╮
+│  Executing geNomad nn-classification (v1.8.0). This will classify the input  │
+│  sequences into chromosome, plasmid, or virus based on the nucleotide        │
+│  sequence.                                                                   │
+│  ──────────────────────────────────────────────────────────────────────────  │
+│  Outputs:                                                                    │
+│    GCA_900552055.1_nn_classification                                         │
+│    ├── GCA_900552055.1_nn_classification.json (execution parameters)         │
+│    ├── GCA_900552055.1_encoded_sequences (directory containing encoded       │
+│    │   sequence data)                                                        │
+│    ├── GCA_900552055.1_nn_classification.tsv (contig classification:         │
+│    │   tabular format)                                                       │
+│    ├── GCA_900552055.1_nn_classification.npz (contig classification: binary  │
+│    │   format)                                                               │
+│    ├── GCA_900552055.1_encoded_proviruses (directory containing encoded      │
+│    │   sequence data)                                                        │
+│    ├── GCA_900552055.1_provirus_nn_classification.tsv (provirus              │
+│    │   classification: tabular format)                                       │
+│    └── GCA_900552055.1_provirus_nn_classification.npz (provirus              │
+│        classification: binary format)                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+[17:15:30] Executing genomad nn-classification.                                 
+[17:15:30] Creating the GCA_900552055.1_nn_classification directory.            
+[17:15:30] Creating the                                                         
+           GCA_900552055.1_nn_classification/GCA_900552055.1_encoded_sequences  
+           directory.                                                           
+[17:15:32] Encoded sequence data written to GCA_900552055.1_encoded_sequences.  
+[17:15:32] Creating the                                                         
+           GCA_900552055.1_nn_classification/GCA_900552055.1_encoded_proviruses 
+           directory.                                                           
+[17:15:32] Encoded provirus data written to GCA_900552055.1_encoded_proviruses. 
+[17:15:48] Sequences classified.                                                
+[17:15:48] Sequence classification in binary format written to                  
+           GCA_900552055.1_nn_classification.npz.                               
+[17:15:48] Deleting encoded sequence data.                                      
+[17:15:49] Sequence classification in tabular format written to                 
+           GCA_900552055.1_nn_classification.tsv.                               
+[17:15:51] Proviruses classified.                                               
+[17:15:51] Provirus classification in binary format written to                  
+           GCA_900552055.1_provirus_nn_classification.npz.                      
+[17:15:52] Deleting encoded provirus data.                                      
+[17:15:52] Provirus classification in tabular format written to                 
+           GCA_900552055.1_provirus_nn_classification.tsv.                      
+[17:15:52] geNomad nn-classification finished!                                  

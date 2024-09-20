@@ -1,0 +1,23 @@
+╭──────────────────────────────────────────────────────────────────────────────╮
+│  Executing geNomad aggregated-classification (v1.8.0). This will aggregate   │
+│  the results of the marker-classification and nn-classification modules to   │
+│  classify the input sequences into chromosome, plasmid, or virus.            │
+│  ──────────────────────────────────────────────────────────────────────────  │
+│  Outputs:                                                                    │
+│    GCA_007120565.1_aggregated_classification                                 │
+│    ├── GCA_007120565.1_aggregated_classification.json (execution             │
+│    │   parameters)                                                           │
+│    ├── GCA_007120565.1_aggregated_classification.tsv (sequence               │
+│    │   classification: tabular format)                                       │
+│    └── GCA_007120565.1_aggregated_classification.npz (sequence               │
+│        classification: binary format)                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+[17:16:14] Executing genomad aggregated-classification.                         
+[17:16:14] Creating the GCA_007120565.1_aggregated_classification directory.    
+[17:16:14] The total marker frequencies of the input sequences were computed.   
+[17:16:14] Sequences classified.                                                
+[17:16:14] Sequence classification in binary format written to                  
+           GCA_007120565.1_aggregated_classification.npz.                       
+[17:16:14] Sequence classification in tabular format written to                 
+           GCA_007120565.1_aggregated_classification.tsv.                       
+[17:16:14] geNomad aggregated-classification finished!                          

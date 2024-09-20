@@ -40,6 +40,14 @@ profiles {
 	        clusterOptions = { " -S /bin/bash -R y -l h_vmem=${task.memory.toString().replaceAll(/[\sB]/,'')}" } 
           
         }
+          withLabel: 'mem_med_single_cpu' {
+          cpus = 1
+	        memory = { 8.GB * task.attempt }
+          time = '12h'
+	        maxRetries = 3
+	        clusterOptions = { " -S /bin/bash -R y -l h_vmem=${task.memory.toString().replaceAll(/[\sB]/,'')}" } 
+          
+        }
         
     
     } // end process

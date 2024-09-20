@@ -1,0 +1,44 @@
+#                                                                             --- full sequence --- -------------- this domain -------------   hmm coord   ali coord   env coord
+# target name         accession   tlen query name           accession   qlen   E-value  score  bias   #  of  c-Evalue  i-Evalue  score  bias  from    to  from    to  from    to  acc description of target
+# ------------------- ---------- ----- -------------------- ---------- ----- --------- ------ ----- --- --- --------- --------- ------ ----- ----- ----- ----- ----- ----- ----- ---- ---------------------
+GCF_900752885.1_01876 -            357 B000032              -            249   3.2e-90  298.8   0.1   1   1   2.5e-93   4.9e-90  298.2   0.1     3   216    66   280    64   323 0.94 tRNA pseudouridine synthase B
+GCF_900752885.1_01838 -            322 B000039              -            162   3.4e-05   20.8   0.2   1   2   5.6e-06     0.011   12.6   0.1     3    48   109   165   107   205 0.65 Ribonuclease HIII
+GCF_900752885.1_01838 -            322 B000039              -            162   3.4e-05   20.8   0.2   2   2   0.00083       1.6    5.6   0.0   100   124   249   273   239   292 0.80 Ribonuclease HIII
+GCF_900752885.1_01882 -            403 B000041              -            348  1.3e-140  465.2   6.0   1   1  7.7e-144  1.5e-140  464.9   6.0     1   345     1   345     1   348 0.99 Transcription termination/antitermination protein NusA
+GCF_900752885.1_01846 -            117 B000062              -            108   4.5e-36  119.9   0.0   1   1   2.8e-39   5.5e-36  119.6   0.0     3   106     8   111     6   112 0.97 Ribosomal silencing factor RsfS
+GCF_900752885.1_01878 -            122 B000063              -            112   2.1e-37  124.5   0.4   1   1   1.2e-40   2.3e-37  124.4   0.4     2   111     2   112     1   113 0.97 Ribosome-binding factor A
+GCF_900752885.1_01504 -            152 B000065              -            148   1.9e-67  222.5   2.1   1   1   1.1e-70   2.1e-67  222.3   2.1     2   147     6   151     5   152 0.99 SsrA-binding protein
+GCF_900752885.1_01595 -            197 B000071              -            170   1.1e-49  165.1   1.3   1   2   3.7e-49   2.4e-46  154.2   0.1     1   133     1   133     1   148 0.97 Holliday junction ATP-dependent DNA helicase RuvA
+GCF_900752885.1_01595 -            197 B000071              -            170   1.1e-49  165.1   1.3   2   2   6.2e-05      0.04   10.3   0.1   131   168   152   194   148   196 0.76 Holliday junction ATP-dependent DNA helicase RuvA
+GCF_900752885.1_00323 -            743 B000071              -            170   6.8e-06   22.6   0.0   1   2   2.5e-06    0.0017   14.8   0.0    77   155    92   170    79   175 0.83 ATP-dependent RecD-like DNA helicase
+GCF_900752885.1_00323 -            743 B000071              -            170   6.8e-06   22.6   0.0   2   2   0.00035      0.23    7.9   0.0    79   127   157   204   147   216 0.86 ATP-dependent RecD-like DNA helicase
+GCF_900752885.1_00552 -            199 B000071              -            170   0.00089   15.7   0.0   1   1   2.6e-06    0.0017   14.8   0.0   106   139    12    45     7    55 0.90 Recombination protein RecR
+GCF_900752885.1_01191 -            188 B000079              -            179   1.6e-79  262.3   7.7   1   1   9.1e-83   1.8e-79  262.2   7.7     3   178    12   187    10   188 0.99 Ribosome-recycling factor
+GCF_900752885.1_00552 -            199 B000080              -            192   1.4e-83  275.7   0.0   1   1   1.6e-86   1.6e-83  275.6   0.0     2   192     9   199     8   199 0.99 Recombination protein RecR
+GCF_900752885.1_01595 -            197 B000080              -            192   1.4e-05   21.2   0.1   1   2    0.0056       5.5    3.0   0.0     7    26    73    92    68   104 0.78 Holliday junction ATP-dependent DNA helicase RuvA
+GCF_900752885.1_01595 -            197 B000080              -            192   1.4e-05   21.2   0.1   2   2   6.2e-07    0.0006   15.9   0.0     7    31   108   132   102   152 0.86 Holliday junction ATP-dependent DNA helicase RuvA
+GCF_900752885.1_01663 -            165 B000081              -             99   3.4e-32  107.0   0.1   1   2   3.4e-11   6.6e-08   29.1   0.0     2    34    37    69    36    71 0.94 Endoribonuclease YbeY
+GCF_900752885.1_01663 -            165 B000081              -             99   3.4e-32  107.0   0.1   2   2     1e-25     2e-22   75.7   0.3    34    98    93   157    86   158 0.96 Endoribonuclease YbeY
+GCF_900752885.1_01850 -            308 B000082              -            274   4.7e-94  311.5   0.0   1   1   1.7e-96   5.6e-94  311.3   0.0     1   274     4   284     4   284 0.94 tRNA dimethylallyltransferase
+GCF_900752885.1_01305 -            189 B000082              -            274   0.00032   16.9   0.0   1   1   1.5e-06    0.0005   16.3   0.0     2    30    25    53    24    57 0.92 Uridine kinase
+GCF_900752885.1_00390 -            421 B000082              -            274    0.0021   14.2   0.1   1   1   1.3e-05    0.0042   13.2   0.1     1    31   114   144   114   149 0.87 ATP-dependent Clp protease ATP-binding subunit ClpX
+GCF_900752885.1_00877 -            454 B000082              -            274    0.0092   12.1   0.1   1   1   5.8e-05     0.019   11.1   0.1     1    27    73    99    73   106 0.84 ATP-dependent protease ATPase subunit ClpY
+GCF_900752885.1_01895 -            220 B000082              -            274     0.012   11.7   0.5   1   3   0.00013     0.041   10.0   0.0     1    37     6    40     6    68 0.73 Cytidylate kinase
+GCF_900752885.1_01895 -            220 B000082              -            274     0.012   11.7   0.5   2   3      0.33   1.1e+02   -1.2   0.0   242   262   103   123    83   129 0.78 Cytidylate kinase
+GCF_900752885.1_01895 -            220 B000082              -            274     0.012   11.7   0.5   3   3       1.3   4.4e+02   -3.2   0.1   194   207   153   166   146   187 0.41 Cytidylate kinase
+GCF_900752885.1_01387 -            821 B000082              -            274     0.054    9.6   0.0   1   3       1.6   5.2e+02   -3.4   0.0     3    22   206   225   205   226 0.86 Negative regulator of genetic competence ClpC/MecB
+GCF_900752885.1_01387 -            821 B000082              -            274     0.054    9.6   0.0   2   3      0.18        58   -0.3   0.7   118   156   401   439   392   479 0.84 Negative regulator of genetic competence ClpC/MecB
+GCF_900752885.1_01387 -            821 B000082              -            274     0.054    9.6   0.0   3   3   0.00017     0.054    9.6   0.0     2    22   542   562   541   568 0.89 Negative regulator of genetic competence ClpC/MecB
+GCF_900752885.1_00493 -            170 B000086              -            145     6e-41  136.2   0.0   1   1   1.5e-41   2.9e-38  127.5   0.0     2   140     5   159     4   162 0.90 Ribosome maturation factor RimM
+GCF_900752885.1_01874 -            300 B000096              -            286   1.6e-86  286.6   0.0   1   1   9.5e-90   1.9e-86  286.4   0.0     5   285     3   291     1   292 0.94 Bifunctional riboflavin kinase/FMN adenylyltransferase
+GCF_900752885.1_00761 -            303 B000114              -            269   3.6e-91  301.5   0.0   1   1   2.8e-94   5.6e-91  300.8   0.0     2   269    19   302    18   302 0.94 UDP-N-acetylenolpyruvoylglucosamine reductase
+#
+# Program:         hmmsearch
+# Version:         3.4 (Aug 2023)
+# Pipeline mode:   SEARCH
+# Query file:      /wynton/protected/home/sirota/clairedubin/MIDAS3_nextflow/test_db/markers_models/phyeco/marker_genes.hmm
+# Target file:     GCF_900752885.1.faa
+# Option settings: hmmsearch --domtblout GCF_900752885.1.hmmsearch --noali --cpu 4 /wynton/protected/home/sirota/clairedubin/MIDAS3_nextflow/test_db/markers_models/phyeco/marker_genes.hmm GCF_900752885.1.faa 
+# Current dir:     /wynton/protected/home/sirota/clairedubin/MIDAS3_nextflow/work/e5/6b6705f9287993cd7d44d293580779
+# Date:            Wed Sep 18 17:09:22 2024
+# [ok]

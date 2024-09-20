@@ -1,0 +1,42 @@
+#                                                                            --- full sequence --- -------------- this domain -------------   hmm coord   ali coord   env coord
+# target name        accession   tlen query name           accession   qlen   E-value  score  bias   #  of  c-Evalue  i-Evalue  score  bias  from    to  from    to  from    to  acc description of target
+#------------------- ---------- ----- -------------------- ---------- ----- --------- ------ ----- --- --- --------- --------- ------ ----- ----- ----- ----- ----- ----- ----- ---- ---------------------
+GCA_007135585.1_02182 -            221 B000039              -            162   1.7e-48  162.2   0.0   1   1   2.3e-51   7.1e-48  160.2   0.0     3   161    30   211    28   212 0.89 Ribonuclease HII
+GCA_007135585.1_01343 -            139 B000062              -            108   3.3e-32  108.0   0.0   1   1   1.3e-35   3.9e-32  107.8   0.0     4   106    11   113     8   115 0.96 Ribosomal silencing factor RsfS
+GCA_007135585.1_00142 -            173 B000065              -            148   1.4e-59  197.6   0.3   1   1   5.2e-63   1.6e-59  197.4   0.3     2   147    25   171    24   172 0.97 SsrA-binding protein
+GCA_007135585.1_00049 -            587 B000071              -            170    0.0019   15.3   0.7   1   3    0.0021       2.1    5.3   0.1    97   123    44    70    36    87 0.85 DNA polymerase/3'-5' exonuclease PolX
+GCA_007135585.1_00049 -            587 B000071              -            170    0.0019   15.3   0.7   2   3   8.4e-05     0.084    9.9   0.2    73   127    55   114    49   126 0.75 DNA polymerase/3'-5' exonuclease PolX
+GCA_007135585.1_00049 -            587 B000071              -            170    0.0019   15.3   0.7   3   3     0.001         1    6.3   0.1    73   123    95   145    91   182 0.77 DNA polymerase/3'-5' exonuclease PolX
+GCA_007135585.1_03044 -            197 B000071              -            170    0.0099   12.9   0.0   1   1   1.7e-05     0.017   12.2   0.0   107   129    11    33     4    45 0.80 Recombination protein RecR
+GCA_007135585.1_02622 -            431 B000071              -            170     0.032   11.3   0.0   1   1   6.1e-05     0.062   10.3   0.0    98   142   286   331   228   343 0.76 DNA ligase
+GCA_007135585.1_00615 -            186 B000079              -            179   1.1e-72  240.7   0.7   1   1   4.1e-76   1.2e-72  240.5   0.7     2   179     9   186     8   186 0.99 Ribosome-recycling factor
+GCA_007135585.1_03044 -            197 B000080              -            192   3.1e-83  275.2   0.0   1   1   2.3e-86   3.5e-83  275.0   0.0     1   191     6   196     6   197 0.99 Recombination protein RecR
+GCA_007135585.1_01240 -            384 B000080              -            192    0.0095   12.6   0.2   1   1   1.6e-05     0.024   11.3   0.2    45    76   344   375   330   383 0.82 tRNA(Ile)-lysidine synthase
+GCA_007135585.1_02545 -            149 B000081              -             99   3.5e-28   94.7   0.0   1   2   4.2e-11   1.3e-07   28.8   0.0     2    35    36    69    35    74 0.95 Endoribonuclease YbeY
+GCA_007135585.1_02545 -            149 B000081              -             99   3.5e-28   94.7   0.0   2   2   4.1e-22   1.2e-18   64.1   0.0    34    97    80   143    77   145 0.96 Endoribonuclease YbeY
+GCA_007135585.1_01247 -            308 B000082              -            274   1.1e-83  278.2   0.0   1   1     2e-86   1.5e-83  277.7   0.0     2   271     5   286     4   288 0.92 tRNA dimethylallyltransferase
+GCA_007135585.1_02578 -            354 B000082              -            274   0.00038   17.3   0.1   1   1   8.8e-07   0.00066   16.5   0.1     1    31    41    71    41    76 0.88 ATP-dependent Clp protease ATP-binding subunit ClpX
+GCA_007135585.1_01193 -            629 B000082              -            274    0.0027   14.5   0.0   1   2       1.5   1.1e+03   -4.0   0.0    53    76   320   343   319   346 0.87 Vitamin B12 import ATP-binding protein BtuD
+GCA_007135585.1_01193 -            629 B000082              -            274    0.0027   14.5   0.0   2   2   8.1e-06    0.0062   13.3   0.0     1    21   396   416   396   422 0.90 Vitamin B12 import ATP-binding protein BtuD
+GCA_007135585.1_00132 -            298 B000082              -            274    0.0063   13.3   0.0   1   2   3.3e-05     0.025   11.3   0.0     1    39    40    75    40    92 0.86 hypothetical protein
+GCA_007135585.1_00132 -            298 B000082              -            274    0.0063   13.3   0.0   2   2      0.18   1.4e+02   -0.9   0.0   168   226   185   247   179   274 0.66 hypothetical protein
+GCA_007135585.1_00364 -            236 B000096              -            286   1.1e-68  228.8   0.0   1   1     4e-72   1.2e-68  228.6   0.0    75   285     2   223     1   224 0.94 Bifunctional riboflavin kinase/FMN adenylyltransferase
+GCA_007135585.1_00623 -            193 B000103              -            185   5.5e-62  206.3   0.0   1   1     2e-65   6.2e-62  206.1   0.0     2   184     6   190     5   191 0.95 Peptidyl-tRNA hydrolase
+GCA_007135585.1_02287 -            310 B000114              -            269   2.9e-81  269.6   0.0   1   1   6.5e-82   3.3e-79  262.9   0.0     2   268    17   306    16   307 0.92 UDP-N-acetylenolpyruvoylglucosamine reductase
+GCA_007135585.1_01385 -            456 B000114              -            269    0.0065   12.7   0.1   1   1   3.5e-05     0.018   11.3   0.1    13    68    33    87    22   182 0.79 putative FAD-linked oxidoreductase
+GCA_007135585.1_02579 -            337 B000114              -            269     0.011   11.9   0.1   1   1   3.9e-05     0.019   11.1   0.1    24   111     6   105     2   138 0.79 hypothetical protein
+GCA_007135585.1_02580 -            496 B000114              -            269     0.021   11.0   0.0   1   2      0.22   1.1e+02   -1.2   0.0    24    50    62    88    60    93 0.84 putative FAD-linked oxidoreductase
+GCA_007135585.1_02580 -            496 B000114              -            269     0.021   11.0   0.0   2   2   0.00017     0.087    9.0   0.0    73   141   128   201   112   208 0.77 putative FAD-linked oxidoreductase
+GCA_007135585.1_01894 -            456 B000114              -            269     0.022   10.9   0.1   1   2   0.00039       0.2    7.8   0.0    12    55    32    74    23    92 0.85 putative FAD-linked oxidoreductase
+GCA_007135585.1_01894 -            456 B000114              -            269     0.022   10.9   0.1   2   2     0.067        34    0.5   0.1   105   142   138   179   132   183 0.78 putative FAD-linked oxidoreductase
+GCA_007135585.1_02500 -            475 B000114              -            269     0.023   10.9   0.1   1   1   9.7e-05     0.049    9.8   0.1    22    71    54   103    47   190 0.78 6-hydroxy-D-nicotine oxidase
+#
+# Program:         hmmsearch
+# Version:         3.4 (Aug 2023)
+# Pipeline mode:   SEARCH
+# Query file:      /wynton/protected/home/sirota/clairedubin/MIDAS3_nextflow/test_db/markers_models/phyeco/marker_genes.hmm
+# Target file:     GCA_007135585.1.faa
+# Option settings: hmmsearch --domtblout GCA_007135585.1.hmmsearch --noali --cpu 4 /wynton/protected/home/sirota/clairedubin/MIDAS3_nextflow/test_db/markers_models/phyeco/marker_genes.hmm GCA_007135585.1.faa 
+# Current dir:     /wynton/protected/home/sirota/clairedubin/MIDAS3_nextflow/work/8d/7637bcc0dba0a2011b04a4f0c2d044
+# Date:            Wed Sep 18 16:51:22 2024
+# [ok]

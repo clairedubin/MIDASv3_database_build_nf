@@ -1,0 +1,28 @@
+╭──────────────────────────────────────────────────────────────────────────────╮
+│  Executing geNomad marker-classification (v1.8.0). This will classify the    │
+│  input sequences into chromosome, plasmid, or virus based on the presence    │
+│  of geNomad markers and other gene-related features.                         │
+│  ──────────────────────────────────────────────────────────────────────────  │
+│  Outputs:                                                                    │
+│    GCA_007120565.1_marker_classification                                     │
+│    ├── GCA_007120565.1_marker_classification.json (execution parameters)     │
+│    ├── GCA_007120565.1_features.tsv (sequence feature data: tabular format)  │
+│    ├── GCA_007120565.1_features.npz (sequence feature data: binary format)   │
+│    ├── GCA_007120565.1_marker_classification.tsv (sequence classification:   │
+│    │   tabular format)                                                       │
+│    └── GCA_007120565.1_marker_classification.npz (sequence classification:   │
+│        binary format)                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+[17:15:28] Executing genomad marker-classification.                             
+[17:15:28] Creating the GCA_007120565.1_marker_classification directory.        
+[17:15:30] Sequence features computed.                                          
+[17:15:30] Sequence features in binary format written to                        
+           GCA_007120565.1_features.npz.                                        
+[17:15:30] Sequence features in tabular format written to                       
+           GCA_007120565.1_features.tsv.                                        
+[17:15:30] Sequences classified.                                                
+[17:15:30] Sequence classification in binary format written to                  
+           GCA_007120565.1_marker_classification.npz.                           
+[17:15:30] Sequence classification in tabular format written to                 
+           GCA_007120565.1_marker_classification.tsv.                           
+[17:15:30] geNomad marker-classification finished!                              
