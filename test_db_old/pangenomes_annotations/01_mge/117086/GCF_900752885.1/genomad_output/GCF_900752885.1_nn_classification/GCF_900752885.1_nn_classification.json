@@ -1,9 +1,0 @@
-{
-    "module": "nn_classification",
-    "input": "GCF_900752885.1.fna",
-    "input_md5": "3d6961b2c397a889a179aeae0f533f5c",
-    "start_time": "2024-09-18T17:16:10.162954-07:00",
-    "parameters": {
-        "single_window": false
-    }
-}
