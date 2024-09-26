@@ -92,13 +92,9 @@ workflow {
 
     //// BUILD MARKER DB ////
 
-    HMMMarkerSearch(
-        AnnotateGenomes.out.genome, 
-        AnnotateGenomes.out.species, 
-        AnnotateGenomes.out.faa, 
-        AnnotateGenomes.out.ffn)
+    HMMMarkerSearch(AnnotateGenomes.out.faa_ffn_tuple)
 
-    ParseHMMMarkers(HMMMarkerSearch.out)
+    ParseHMMMarkers(HMMMarkerSearch.out.hmm_marker_search)
 
     // get only representative genomes
     genomes.filter { r -> (r[3] == "1") }
@@ -106,7 +102,7 @@ workflow {
         .set{ rep_genomes }
 
     rep_genomes
-        .join(ParseHMMMarkers.out, by: 1)
+        .join(ParseHMMMarkers.out.parsed_hmm_markers, by: 1)
         .set{ rep_inferred_markers }
 
     BuildMarkerDB(
@@ -146,8 +142,8 @@ workflow {
 
     ParseCentroidInfo(uclust_to_parse)
 
-    ParseCentroidInfo.out
-        .join(CleanCentroids.out)
+    ParseCentroidInfo.out.parsed_centroid_info
+        .join(CleanCentroids.out.cleaned_centroids)
         .join(CombineCleanedGenes.out.genes_ffn)
         .join(CombineCleanedGenes.out.genes_len)
         .set{refine_clusters_input}
@@ -162,7 +158,7 @@ workflow {
 
     ReClusterCentroids(lower_cluster_refine_ch)
 
-    ParseHMMMarkers.out
+    ParseHMMMarkers.out.parsed_hmm_markers
         .map{ r -> tuple(r[0], r[3])}
         .groupTuple(by: 0)
         .set{markers_per_species}
@@ -178,7 +174,7 @@ workflow {
         
     ////// EGGNOG ANNOTATION OF CENTROIDS ////
 
-    RunEggNog(RefineClusters.out.max_centroid_ffn)
+    RunEggNog(RefineClusters.out.centroid_ffn)
     
     //// COMBINE ANNOTATION RESULTS ////
 
@@ -193,7 +189,6 @@ workflow {
         .map{it.swap(1,0)} //swap back genome and species
         .set{annotations_to_parse}
 
-    annotations_to_parse.view()
     ParsePangenomeAnnotations(annotations_to_parse)
 
     CombinePangenomeAnnotations(ParsePangenomeAnnotations.out.groupTuple(by: 0))
@@ -235,6 +230,7 @@ process AnnotateGenomes {
     path("${genome}.ffn"), emit: ffn
     path("${genome}.tsv"), emit: tsv
     tuple val(genome), val(species), path("${genome}.fna"), emit: fna_tuple
+    tuple val(genome), val(species), path("${genome}.faa"), path("${genome}.ffn"), emit: faa_ffn_tuple
     path("${genome}.log")
 
     script:
@@ -308,17 +304,10 @@ process HMMMarkerSearch {
     publishDir "${params.db_dir_path}/markers/${params.marker_set}/temp/${species}/${genome}", mode: "copy"
     
     input:
-    val(genome)
-    val(species)
-    path(faa)
-    path(ffn)
+    tuple val(genome), val(species), path(faa), path(ffn)
 
     output:
-    // all of these as a tuple
-    val(genome), emit: genome
-    val(species), emit: species
-    path("${genome}.hmmsearch"), emit: hmmsearch
-    path(ffn)
+    tuple val(genome), val(species), path("${genome}.hmmsearch"), path(ffn), emit: hmm_marker_search
 
     script:
     """
@@ -338,14 +327,12 @@ process ParseHMMMarkers {
     publishDir "${params.db_dir_path}/markers/${params.marker_set}/temp/${species}/${genome}", mode: "copy"
 
     input:
-    //make tuple
-    val(genome)
-    val(species)
-    path(hmmsearch)
-    path(ffn)
+    tuple val(genome), val(species), path(hmmsearch), path(ffn)
 
     output:
-    tuple val(species), val(genome), path("${genome}.markers.fa"), path("${genome}.markers.map") 
+    tuple val(species), val(genome), path("${genome}.markers.fa"), path("${genome}.markers.map")
+    tuple val(species), val(genome), path("${genome}.markers.fa"), path("${genome}.markers.map"), emit: parsed_hmm_markers
+ 
 
     script:
 
@@ -477,7 +464,7 @@ process CleanCentroids {
     output:
     tuple val(species), \
     path("centroids.${cluster_pct}.clean.ffn"), \
-    path("centroids.${cluster_pct}.ambiguous.ffn")
+    path("centroids.${cluster_pct}.ambiguous.ffn"), emit: cleaned_centroids
 
 """
 #!/usr/bin/env python3
@@ -519,7 +506,7 @@ process ParseCentroidInfo {
     tuple val(species), path(uclust_files)
 
     output:
-    tuple val(species), path("gene_info.txt")
+    tuple val(species), path("sp_${species}.gene_info.txt"), emit: parsed_centroid_info
 
     script:
     """
@@ -528,10 +515,14 @@ process ParseCentroidInfo {
     set -x
 
     python3 ${params.bin_path}/parse_centroids.py ${uclust_files}
+    
+    mv gene_info.txt sp_${species}.gene_info.txt
     """
 }
 
 process RefineClusters {
+
+    // TODO: 99 is hard coded into pipeline.sh
 
     label 'mem_medium'
     errorStrategy 'terminate'
@@ -540,7 +531,7 @@ process RefineClusters {
         path: "${params.db_dir_path}/pangenomes/${species}/",
         mode: "copy",
         saveAs: { fn ->
-            if (fn == "centroids.ffn") { "${fn}" }
+            if (fn == "${species}.centroids.ffn") { "${fn}" }
             else { "temp/cdhit/${fn}" }
         }
     )
@@ -549,10 +540,10 @@ process RefineClusters {
     tuple val(species), path(gene_info), path(clean_centroids), path(amb_centroids), path(genes_ffn), path(genes_len)
 
     output:
-    tuple val(species), path("centroids.*.refined.ffn"), emit: centroid_ffn 
-    tuple val(species), path("genes.len.txt"), path("gene_info.txt"), emit: gene_files
-    tuple val(species), path("centroids.ffn"), emit: max_centroid_ffn 
-    path("genes.ffn")
+    tuple val(species), path("sp_${species}.centroids.${params.max_cluster_val}.refined.ffn"), emit: centroid_ffn 
+    tuple val(species), path("sp_${species}.genes.len.txt"), path("sp_${species}.gene_info.txt"), emit: gene_files
+    // tuple val(species), path("sp_${species}.centroids.ffn")
+    // tuple val(species), path("sp_${species}.genes.ffn.txt")
 
     script:
     """
@@ -577,7 +568,14 @@ process RefineClusters {
         exit 1 
     fi
 
-    cp "centroids.${params.max_cluster_val}.refined.ffn" "centroids.ffn"
+    cp "centroids.${params.max_cluster_val}.refined.ffn" "sp_${species}.centroids.ffn"
+
+    mv genes.len.txt sp_${species}.genes.len.txt
+    mv gene_info.txt sp_${species}.gene_info.txt
+    mv genes.ffn.txt sp_${species}.genes.ffn.txt
+    mv "centroids.${params.max_cluster_val}.refined.ffn" "sp_${species}.centroids.${params.max_cluster_val}.refined.ffn"
+
+
     """
 }
 
@@ -669,13 +667,13 @@ process RunEggNog {
     ///should explore other ways to just load db once or twice
     //also note i hard coded scratch dir below for wynton compute nodes
 
-    label 'mem_high'
-    errorStrategy 'terminate'
+    label 'mem_very_high'
+    errorStrategy 'retry'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/eggnog'
     publishDir "${params.db_dir_path}/pangenomes_annotation/02_eggnog/${species}", mode: "copy"
     
     input:
-    tuple val(species), path(max_centroid_ffn)
+    tuple val(species), path(centroid_ffn)
 
     output:
     tuple val(species), path("${species}.emapper.annotations")
@@ -686,7 +684,7 @@ process RunEggNog {
     set -e
     
     emapper.py \
-    -i ${max_centroid_ffn} --itype CDS \
+    -i ${centroid_ffn} --itype CDS \
     -m diamond --sensmode more-sensitive \
     --data_dir ${params.eggnog_db_dir} \
     --output ${species} --override \
@@ -804,13 +802,13 @@ process ParsePangenomeAnnotations {
 
     output:
     tuple val(species), \
-    path("genomad_virus/${genome}.tsv"), \
-    path("genomad_plasmid/${genome}.tsv"), \
-    path("mefinder/${genome}.tsv"), \
-    path("resfinder/${genome}.tsv"), \
-    path("eggnog/${genome}.tsv")
+    path("genomad_virus/${genome}_genomad_virus.tsv"), \
+    path("genomad_plasmid/${genome}_genomad_plasmid.tsv"), \
+    path("mefinder/${genome}_mefinder.tsv"), \
+    path("resfinder/${genome}_resfinder.tsv"), \
+    path("eggnog/${genome}_eggnog.tsv")
 
-
+    //TODO: make input arg names match up with enhance pangenome args
     script:
     """
     #! /usr/bin/env bash
@@ -923,15 +921,15 @@ process EnhancePangenome {
     path(genomad_plasmid), \
     path(mefinder_file), \
     path(resfinder_file), \
-    path(eggnog_results_file), \
+    path(eggnog_file), \
     path(genes_info_file), \
-    path(cluster_info_file_list)
+    path(cluster_info_file_list, stageAs: 'old/*')
 
     output:
     tuple val(species), \
     path("genes_annotated.tsv"), \
-    path("clusters_*_annot.tsv"), \
-    path("clusters_*_info.tsv")
+    path('clusters_*_annot.tsv'), \
+    path('clusters_*_info.tsv')
 
     script:
     """
@@ -941,13 +939,13 @@ process EnhancePangenome {
 
     cluster_pct_list=\$(echo ${params.vsearch_cluster_percents} | tr -d '[],')
 
-    python3 ${params.bin_path}/parse_pangenome_annotations.py \
-    --cluster_thresholds \${cluster_pct_list} 
+    python3 ${params.bin_path}/enhance_pangenome.py \
+    --cluster_thresholds \${cluster_pct_list}  \
     --genomad_virus_file ${genomad_virus} \
     --genomad_plasmid_file ${genomad_plasmid} \
     --mefinder_file ${mefinder_file} \
     --resfinder_file ${resfinder_file} \
-    --eggnog_file ${eggnog_file}
+    --eggnog_file ${eggnog_file} \
     --genes_info_file ${genes_info_file} \
     --cluster_info_file_list ${cluster_info_file_list} 
 

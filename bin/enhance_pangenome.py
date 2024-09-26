@@ -122,7 +122,7 @@ if __name__ == "__main__":
 
     # Merge the cluster info with annotation
     for xx in cluster_thresholds:
-        xx_info = pd.read_csv(f"clusters_{xx}_info.tsv", sep="\t")
+        xx_info = pd.read_csv(f"old/clusters_{xx}_info.tsv", sep="\t")
         xx_anno = pd.read_csv(f"clusters_{xx}_annot.tsv", sep="\t")
         assert xx_info.shape[0] == xx_anno.shape[0], f"The shape of augment/clusters_{xx}_info.tsv disagree with annotation/clusters_{xx}_annoted.tsv"
         xx_df = pd.merge(xx_info, xx_anno, on=f"centroid_{xx}", how='left')

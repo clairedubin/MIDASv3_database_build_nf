@@ -175,7 +175,7 @@ fi
 is_success="${out_dir}/PIPELINE_SUCCESS"
 if [[ ! -e ${is_success} ]]; then
   awk '{ if ($0 ~ /^>/) {print $0} else {print toupper($0)}}' ${cdhit_centroids_ffn} > ${out_dir}/centroids.99.refined.ffn
-  seqkit grep -w 0 -f ${info_dir}/list_of_cdhit_genes ${genes_ffn} > ${out_dir}/genes.ffn
+  seqkit grep -w 0 -f ${info_dir}/list_of_cdhit_genes ${genes_ffn} > ${out_dir}/genes.ffn.txt
   cp ${gene_info_cdhit} "${out_dir}/gene_info.txt" #<--
   grep -Fwf <(cut -f1 ${gene_info_cdhit}) ${genes_len} > "${out_dir}/genes.len.txt"
 
