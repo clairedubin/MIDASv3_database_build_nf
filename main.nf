@@ -53,7 +53,8 @@ include { ReClusterCentroids as ReClusterCentroids } from './modules/cluster_cen
 // edit directories/outputs in pipeline.sh for speed/redundancy
 // check that output files are not empty
 // fix hard coded git paths and loading blast module in RunResFinder
-// check existence of databases
+// check existence of package databases
+// containerize stuff
 
 
 workflow {
@@ -67,16 +68,9 @@ workflow {
 
     AnnotateGenomes(genomes)
     
-    GenerateGeneFeatures(
-        AnnotateGenomes.out.genome, 
-        AnnotateGenomes.out.species, 
-        AnnotateGenomes.out.gff)
+    GenerateGeneFeatures(AnnotateGenomes.out.gff_tuple)
 
-    CleanGenes(
-        AnnotateGenomes.out.genome,
-        AnnotateGenomes.out.species,
-        AnnotateGenomes.out.ffn
-        )
+    CleanGenes(AnnotateGenomes.out.ffn_tuple)
 
     CombineCleanedGenes(CleanGenes.out.groupTuple(by: 1))
 
@@ -94,7 +88,7 @@ workflow {
 
     HMMMarkerSearch(AnnotateGenomes.out.faa_ffn_tuple)
 
-    ParseHMMMarkers(HMMMarkerSearch.out.hmm_marker_search)
+    ParseHMMMarkers(HMMMarkerSearch.out)
 
     // get only representative genomes
     genomes.filter { r -> (r[3] == "1") }
@@ -102,7 +96,7 @@ workflow {
         .set{ rep_genomes }
 
     rep_genomes
-        .join(ParseHMMMarkers.out.parsed_hmm_markers, by: 1)
+        .join(ParseHMMMarkers.out, by: 1)
         .set{ rep_inferred_markers }
 
     BuildMarkerDB(
@@ -142,7 +136,7 @@ workflow {
 
     ParseCentroidInfo(uclust_to_parse)
 
-    ParseCentroidInfo.out.parsed_centroid_info
+    ParseCentroidInfo.out
         .join(CleanCentroids.out.cleaned_centroids)
         .join(CombineCleanedGenes.out.genes_ffn)
         .join(CombineCleanedGenes.out.genes_len)
@@ -158,7 +152,7 @@ workflow {
 
     ReClusterCentroids(lower_cluster_refine_ch)
 
-    ParseHMMMarkers.out.parsed_hmm_markers
+    ParseHMMMarkers.out
         .map{ r -> tuple(r[0], r[3])}
         .groupTuple(by: 0)
         .set{markers_per_species}
@@ -221,16 +215,11 @@ process AnnotateGenomes {
     tuple val(genome), val(species), val(representative), val(genome_is_representative)
 
     output:
-    /// can also make a big tuple with everything i need later on
-    // tuple val(genome), val(species), emit: input_annotation
-    val(genome), emit: genome
-    val(species), emit: species
-    path("${genome}.gff"), emit: gff
-    path("${genome}.faa"), emit: faa
-    path("${genome}.ffn"), emit: ffn
-    path("${genome}.tsv"), emit: tsv
+    tuple val(genome), val(species), path("${genome}.gff"), emit: gff_tuple
+    tuple val(genome), val(species), path("${genome}.ffn"), emit: ffn_tuple
     tuple val(genome), val(species), path("${genome}.fna"), emit: fna_tuple
     tuple val(genome), val(species), path("${genome}.faa"), path("${genome}.ffn"), emit: faa_ffn_tuple
+    path("${genome}.tsv")
     path("${genome}.log")
 
     script:
@@ -260,9 +249,7 @@ process GenerateGeneFeatures {
     publishDir "${params.db_dir_path}/gene_annotations/${species}/${genome}", mode: "copy"
 
     input:
-    val(genome)
-    val(species)
-    path(gff)
+    tuple val(genome), val(species), path(gff)
 
     output:
     tuple val(genome), val(species), path("${genome}.genes"), emit: genes
@@ -307,7 +294,7 @@ process HMMMarkerSearch {
     tuple val(genome), val(species), path(faa), path(ffn)
 
     output:
-    tuple val(genome), val(species), path("${genome}.hmmsearch"), path(ffn), emit: hmm_marker_search
+    tuple val(genome), val(species), path("${genome}.hmmsearch"), path(ffn)
 
     script:
     """
@@ -330,9 +317,7 @@ process ParseHMMMarkers {
     tuple val(genome), val(species), path(hmmsearch), path(ffn)
 
     output:
-    tuple val(species), val(genome), path("${genome}.markers.fa"), path("${genome}.markers.map")
-    tuple val(species), val(genome), path("${genome}.markers.fa"), path("${genome}.markers.map"), emit: parsed_hmm_markers
- 
+    tuple val(species), val(genome), path("${genome}.markers.fa"), path("${genome}.markers.map") 
 
     script:
 
@@ -382,9 +367,7 @@ process CleanGenes {
     publishDir "${params.db_dir_path}/gene_annotations/${species}/${genome}", mode: "copy"
 
     input:
-    val(genome)
-    val(species)
-    path(ffn)
+    tuple val(genome), val(species), path(ffn)
 
     output:
     tuple val(genome), val(species), path("${genome}.genes.ffn"), path("${genome}.genes.len")
@@ -506,7 +489,7 @@ process ParseCentroidInfo {
     tuple val(species), path(uclust_files)
 
     output:
-    tuple val(species), path("sp_${species}.gene_info.txt"), emit: parsed_centroid_info
+    tuple val(species), path("sp_${species}.gene_info.txt")
 
     script:
     """
