@@ -1,6 +1,6 @@
 process ClusterCentroids {
     label 'mem_high'
-    errorStrategy 'finish'
+    errorStrategy 'terminate'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/mtest'
     publishDir "${params.db_dir_path}/pangenomes/${species}/temp/vsearch/", mode: "copy"
 
@@ -32,9 +32,9 @@ process ClusterCentroids {
 
 process ReClusterCentroids {
     label 'mem_high'
-    errorStrategy 'finish'
+    errorStrategy 'terminate'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/mtest'
-    publishDir "${params.db_dir_path}/pangenomes/${species}/temp/cdhit", mode: "copy"
+    publishDir "${params.db_dir_path}/pangenomes/${species}/temp/", mode: "copy"
 
     input:
     tuple val(cluster_pct), val(species), path(genes_ffn)

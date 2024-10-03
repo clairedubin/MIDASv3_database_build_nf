@@ -196,22 +196,22 @@ all_genes = all_genes[['contig_id', 'start', 'end', 'gene_id', 'strand', 'gene_t
 
 # Genomad virus
 df = parse_genomad_virus_genes(args.genomad_virus_file)
-local_dest = f"genomad_virus/{genome_id}_genomad_virus.tsv"
+local_dest = f"genomad_virus/{genome_id}"
 write_processed_genome_annot(df, all_genes, local_dest)
 
 # Genomad plasmid
 df = parse_genomad_plasmid_genes(args.genomad_plasmid_file)
-local_dest = f"genomad_plasmid/{genome_id}_genomad_plasmid.tsv"
+local_dest = f"genomad_plasmid/{genome_id}"
 write_processed_genome_annot(df, all_genes, local_dest)
 
 # MEfinder
 df = parse_mefinder(args.mefinder_csv)
-local_dest = f"mefinder/{genome_id}_mefinder.tsv"
+local_dest = f"mefinder/{genome_id}"
 write_processed_genome_annot(df, all_genes, local_dest)
 
 # Resfinder
 df = parse_resfinder(args.resfinder_txt)
-local_dest = f"resfinder/{genome_id}_resfinder.tsv"
+local_dest = f"resfinder/{genome_id}"
 write_processed_genome_annot(df, all_genes, local_dest)
 
 # TODO: make it so centroids_99 is not hard coded below, eg. centroids_{max_percent}
@@ -223,7 +223,7 @@ centroids_99 = pd.merge(centroids_99, contig_len[['contig_id', 'contig_length']]
 centroids_99 = centroids_99[['contig_id', 'start', 'end', 'centroid_99', 'strand', 'gene_type', 'contig_length']]
 
 df = scan_eggnog(args.eggnog_results_file)
-local_dest = f"eggnog/{genome_id}_eggnog.tsv"
+local_dest = f"eggnog/{genome_id}"
 merged_df  = df.merge(centroids_99, left_on='#query', right_on='centroid_99', how='inner')
 merged_df = merged_df.drop(columns=['centroid_99'])
 merged_df.to_csv(local_dest, sep='\t', index=False, header=False)

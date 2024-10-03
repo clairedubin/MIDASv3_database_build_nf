@@ -5,28 +5,37 @@ profiles {
         penv = 'smp'
         maxRetries = 3
         cache = 'lenient'
-	      clusterOptions = { " -S /bin/bash -R y -l h_vmem=${task.memory.toString().replaceAll(/[\sB]/,'')}" }
+	      // clusterOptions = { " -S /bin/bash -R y -l h_vmem=${task.memory.toString().replaceAll(/[\sB]/,'')}" }
+        // scratch = true
+        // errorStrategy = 'retry'
 
         withLabel: 'mem_very_high' {
           cpus = 16
 	        memory = { 8.GB * task.attempt }
           time = '24h'
+          clusterOptions = { " -S /bin/bash -R y -l h_vmem=${task.memory.toString().replaceAll(/[\sB]/,'')}" }
+
         }
         withLabel: 'mem_high' {
           cpus = 8
 	        memory = { 8.GB * task.attempt }
-          time = '24h'      
+          time = '24h'     
+          clusterOptions = { " -S /bin/bash -R y -l h_vmem=${task.memory.toString().replaceAll(/[\sB]/,'')}" }
+ 
         }
         withLabel: 'mem_medium' {
           cpus = 4
 	        memory = { 8.GB * task.attempt }
           time = '24h'  
+          clusterOptions = { " -S /bin/bash -R y -l h_vmem=${task.memory.toString().replaceAll(/[\sB]/,'')}" }
+        
         }
         withLabel: 'single_cpu' {
           cpus = 1
 	        memory = { 4.GB * task.attempt }
           time = '12h'
-          errorStrategy = 'retry'
+          clusterOptions = { " -S /bin/bash -R y -l h_vmem=${task.memory.toString().replaceAll(/[\sB]/,'')}" }
+
         }
     } // end process
     apptainer {

@@ -99,7 +99,7 @@ if __name__ == "__main__":
 
         ##including empty str so dict format is compatible with definitions above
         ##can change this eventually
-        cluster_files[int] = ['', f]
+        cluster_files[int(cluster_percent)] = ['', f]
 
         centroid_info = xref(cluster_files)
         write_gene_info(centroid_info, cluster_files.keys(), "gene_info.txt")

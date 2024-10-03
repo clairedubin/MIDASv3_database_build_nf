@@ -2,6 +2,8 @@
 
 nextflow.enable.dsl=2
 
+//// PARAMS
+
 params.marker_set = "phyeco"
 params.db_name = params.db_name
 params.db_dir = file(params.db_dir)
@@ -14,7 +16,8 @@ params.blastn_path="/wynton/protected/home/sirota/clairedubin/bin/ncbi-blast-2.1
 
 params.vsearch_cluster_percents = [99, 95, 90, 85, 80, 75]
 params.max_cluster_val = params.vsearch_cluster_percents.max()
-params.chunk_size = 100000
+params.run_chunk_size = 1000000
+params.merge_chunk_size = 500000
 
 // Ensure --db_dir and --midas_dir ends with trailing "/" characters
 if (!params.db_dir.endsWith("/")){
@@ -27,6 +30,7 @@ if (!params.midas_dir.endsWith("/")){
 } else {
     params.midas_dir_path = params.midas_dir
 }
+
 
 params.genomes_tsv_path = (params.db_dir_path.concat("genomes.tsv"))
 params.marker_model_hmm = params.db_dir_path + "markers_models/" + params.marker_set + "/marker_genes.hmm"
@@ -64,6 +68,12 @@ workflow {
         .splitCsv(header: true, sep: '\t')
         .map { row -> tuple(row.genome, row.species, row.representative, row.genome_is_representative) } 
 
+    
+    // filter to only representative genomes for certain steps
+    genomes.filter { r -> (r[3] == "1") }
+        .map{ r -> tuple(r[0], r[1]) } //tuple of (genome, species)
+        .set{ rep_genomes }
+
     //// ANNOTATION ////
 
     AnnotateGenomes(genomes)
@@ -90,19 +100,16 @@ workflow {
 
     ParseHMMMarkers(HMMMarkerSearch.out)
 
-    // get only representative genomes
-    genomes.filter { r -> (r[3] == "1") }
-        .map{ r -> tuple(r[0], r[1]) }
-        .set{ rep_genomes }
-
     rep_genomes
         .join(ParseHMMMarkers.out, by: 1)
         .set{ rep_inferred_markers }
+    
 
     BuildMarkerDB(
-        rep_inferred_markers.collect{ r -> r[2]},
-        rep_inferred_markers.collect{ r -> r[3]}
+        rep_inferred_markers.collect{ r -> r[3]},
+        rep_inferred_markers.collect{ r -> r[4]}
     )
+
 
     //// CLUSTERING ////
 
@@ -153,7 +160,7 @@ workflow {
     ReClusterCentroids(lower_cluster_refine_ch)
 
     ParseHMMMarkers.out
-        .map{ r -> tuple(r[0], r[3])}
+        .map{ r -> tuple(r[1], r[3])}
         .groupTuple(by: 0)
         .set{markers_per_species}
 
@@ -164,7 +171,11 @@ workflow {
 
     ParseReclusteredCentroidInfo(recluster_to_parse)
 
-    AugmentPangenomes(ParseReclusteredCentroidInfo.out)
+    AugmentPangenomes(    
+       rep_genomes
+        .map{r -> tuple(r[1], r[0])}
+        .combine(ParseReclusteredCentroidInfo.out.reclustered_centroid_info, by: 0)
+        )
         
     ////// EGGNOG ANNOTATION OF CENTROIDS ////
 
@@ -173,12 +184,12 @@ workflow {
     //// COMBINE ANNOTATION RESULTS ////
 
     GenerateGeneFeatures.out.genes
-        .combine(RunMEFinder.out, by: [0,1])
-        .combine(RunResFinder.out, by: [0,1])
+        .combine(RunMEFinder.out.mefinder_output, by: [0,1])
+        .combine(RunResFinder.out.resfinder_output, by: [0,1])
         .combine(RunGeNomad.out.genomad_gene_files, by: [0,1])
         .map{it.swap(1,0)} //swap order of genome and species to match first column of following channels
         .join(CalculateContigLength.out, by: 0)
-        .join(RunEggNog.out, by: 0)
+        .join(RunEggNog.out.eggnog_output, by: 0)
         .join(AugmentPangenomes.out.max_cluster_info, by: 0)
         .map{it.swap(1,0)} //swap back genome and species
         .set{annotations_to_parse}
@@ -188,7 +199,7 @@ workflow {
     CombinePangenomeAnnotations(ParsePangenomeAnnotations.out.groupTuple(by: 0))
 
     CombinePangenomeAnnotations.out
-        .combine(ParseReclusteredCentroidInfo.out, by: 0)
+        .combine(ParseReclusteredCentroidInfo.out.reclustered_centroid_info, by: 0)
         .combine(AugmentPangenomes.out.cluster_info_file_list, by: 0)
         .set{enhance_pangenome_input}
     
@@ -206,7 +217,8 @@ workflow {
 }
 
 process AnnotateGenomes {
-    label 'mem_high'
+
+    label 'mem_very_high'
     errorStrategy 'terminate'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/mtest'
     publishDir "${params.db_dir_path}/gene_annotations/${species}/${genome}", mode: "copy"
@@ -220,7 +232,6 @@ process AnnotateGenomes {
     tuple val(genome), val(species), path("${genome}.fna"), emit: fna_tuple
     tuple val(genome), val(species), path("${genome}.faa"), path("${genome}.ffn"), emit: faa_ffn_tuple
     path("${genome}.tsv")
-    path("${genome}.log")
 
     script:
     """
@@ -243,7 +254,7 @@ process AnnotateGenomes {
 }
 
 process GenerateGeneFeatures {
-    label 'mem_low_single_cpu'
+    label 'single_cpu'
     errorStrategy 'terminate'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/mtest'
     publishDir "${params.db_dir_path}/gene_annotations/${species}/${genome}", mode: "copy"
@@ -308,7 +319,7 @@ process HMMMarkerSearch {
 }
 
 process ParseHMMMarkers {
-    label 'mem_low_single_cpu'
+    label 'single_cpu'
     errorStrategy 'terminate'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/MIDASv3'
     publishDir "${params.db_dir_path}/markers/${params.marker_set}/temp/${species}/${genome}", mode: "copy"
@@ -317,7 +328,7 @@ process ParseHMMMarkers {
     tuple val(genome), val(species), path(hmmsearch), path(ffn)
 
     output:
-    tuple val(species), val(genome), path("${genome}.markers.fa"), path("${genome}.markers.map") 
+    tuple val(genome), val(species), path("${genome}.markers.fa"), path("${genome}.markers.map") 
 
     script:
 
@@ -332,7 +343,7 @@ process ParseHMMMarkers {
 }
 
 process BuildMarkerDB {
-    label 'mem_low_single_cpu'
+    label 'single_cpu'
     errorStrategy 'terminate'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/mtest'
     publishDir "${params.db_dir_path}/markers/${params.marker_set}", mode: "copy"
@@ -342,18 +353,18 @@ process BuildMarkerDB {
     path '*.markers.map'
 
     output:
-    path("phyeco.fa")
-    path("phyeco.map")
-
+    path("phyeco.*")
 
     script:
+
     """
     #! /usr/bin/env bash
     set -e
     set -x
 
+    echo "here"
     cat *.markers.fa > phyeco.fa
-    cat *.markers.fa > phyeco.map
+    cat *.markers.map > phyeco.map
 
     hs-blastn index phyeco.fa
     """
@@ -361,7 +372,7 @@ process BuildMarkerDB {
 
 process CleanGenes {
 
-    label 'mem_low_single_cpu'
+    label 'single_cpu'
     errorStrategy 'terminate'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/mtest'
     publishDir "${params.db_dir_path}/gene_annotations/${species}/${genome}", mode: "copy"
@@ -402,17 +413,17 @@ with open(output_genes, 'w') as o_genes, \
 }
 
 process CombineCleanedGenes {
-    label 'mem_low_single_cpu'
+    label 'single_cpu'
     errorStrategy 'terminate'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/mtest'
-    publishDir "${params.db_dir_path}/pangenomes/${species}/temp/vsearch", mode: "copy"
+    publishDir "${params.db_dir_path}/pangenomes/${species}/", mode: "copy"
 
     input:
     tuple val(genome), val(species), path(gene_ffns), path(gene_lens)
 
     output:
-    tuple val(species), path("sp_${species}.genes.ffn"), emit: genes_ffn
-    tuple val(species), path("sp_${species}.genes.len"), emit: genes_len
+    tuple val(species), path("genes.ffn"), emit: genes_ffn
+    tuple val(species), path("genes.len"), emit: genes_len
 
     script:
     """
@@ -420,13 +431,13 @@ process CombineCleanedGenes {
     set -e
     set -x
 
-    cat ${gene_ffns} > sp_${species}.genes.ffn
-    cat ${gene_lens} > sp_${species}.genes.len
+    cat ${gene_ffns} > genes.ffn
+    cat ${gene_lens} > genes.len
     
-    if [ ! -s 'sp_${species}.genes.ffn' ]; then
+    if [ ! -s 'genes.ffn' ]; then
         echo ERROR: genes.ffn is empty
         exit 1 
-    elif [ ! -s 'sp_${species}.genes.len' ]; then
+    elif [ ! -s 'genes.len' ]; then
         echo ERROR: genes.len is empty
         exit 1 
     fi
@@ -434,7 +445,7 @@ process CombineCleanedGenes {
 }
 
 process CleanCentroids {
-    label 'mem_low_single_cpu'
+    label 'single_cpu'
     errorStrategy 'terminate'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/mtest'
     publishDir "${params.db_dir_path}/pangenomes/${species}/temp/vsearch/", mode: "copy"
@@ -480,7 +491,7 @@ with open(output_ambiguous, 'w') as o_ambiguous, \
 
 process ParseCentroidInfo {
 
-    label 'mem_low_single_cpu'
+    label 'single_cpu'
     errorStrategy 'terminate'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/MIDASv3'
     publishDir "${params.db_dir_path}/pangenomes/${species}/temp/vsearch/", mode: "copy"
@@ -489,7 +500,7 @@ process ParseCentroidInfo {
     tuple val(species), path(uclust_files)
 
     output:
-    tuple val(species), path("sp_${species}.gene_info.txt")
+    tuple val(species), path("gene_info.txt")
 
     script:
     """
@@ -499,7 +510,6 @@ process ParseCentroidInfo {
 
     python3 ${params.bin_path}/parse_centroids.py ${uclust_files}
     
-    mv gene_info.txt sp_${species}.gene_info.txt
     """
 }
 
@@ -511,22 +521,19 @@ process RefineClusters {
     errorStrategy 'terminate'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/mtest'
     publishDir (
-        path: "${params.db_dir_path}/pangenomes/${species}/",
+        path: "${params.db_dir_path}/pangenomes/${species}",
         mode: "copy",
-        saveAs: { fn ->
-            if (fn == "${species}.centroids.ffn") { "${fn}" }
-            else { "temp/cdhit/${fn}" }
-        }
     )
     
     input:
     tuple val(species), path(gene_info), path(clean_centroids), path(amb_centroids), path(genes_ffn), path(genes_len)
 
     output:
-    tuple val(species), path("sp_${species}.centroids.${params.max_cluster_val}.refined.ffn"), emit: centroid_ffn 
-    tuple val(species), path("sp_${species}.genes.len.txt"), path("sp_${species}.gene_info.txt"), emit: gene_files
-    // tuple val(species), path("sp_${species}.centroids.ffn")
-    // tuple val(species), path("sp_${species}.genes.ffn.txt")
+    tuple val(species), path("centroids.ffn"), emit: centroid_ffn 
+    tuple val(species), path("temp/cdhit/genes.len"), path("temp/cdhit/gene_info.txt"), emit: gene_files
+    path("temp/cdhit/*")
+    path("temp/cdhit/centroids.${params.max_cluster_val}.ffn")
+    // path("genes.ffn")
 
     script:
     """
@@ -534,6 +541,8 @@ process RefineClusters {
     set -e
     set -x
     
+    echo "starting"
+
     bash ${params.bin_path}/pipeline.sh \
         ${species} \
         ${gene_info} \
@@ -546,25 +555,21 @@ process RefineClusters {
         "${params.midas_dir_path}bin" 
 
 
-    if [ ! -e PIPELINE_SUCCESS ]; then
+    if [ ! -e temp/cdhit/PIPELINE_SUCCESS ]; then
         echo ERROR: Cluster refinement not complete
         exit 1 
     fi
 
-    cp "centroids.${params.max_cluster_val}.refined.ffn" "sp_${species}.centroids.ffn"
-
-    mv genes.len.txt sp_${species}.genes.len.txt
-    mv gene_info.txt sp_${species}.gene_info.txt
-    mv genes.ffn.txt sp_${species}.genes.ffn.txt
-    mv "centroids.${params.max_cluster_val}.refined.ffn" "sp_${species}.centroids.${params.max_cluster_val}.refined.ffn"
+    cp "temp/cdhit/centroids.${params.max_cluster_val}.ffn" centroids.ffn
 
 
     """
 }
 
+
 process ParseReclusteredCentroidInfo {
 
-    label 'mem_low_single_cpu'
+    label 'single_cpu'
     errorStrategy 'terminate'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/MIDASv3'
     publishDir "${params.db_dir_path}/pangenomes/${species}/", mode: "copy"
@@ -573,7 +578,8 @@ process ParseReclusteredCentroidInfo {
     tuple val(species), path(genes_len), path(genes_info), path(uclust_files), path(marker_map_files)
 
     output:
-    tuple val(species), path('genes_info.tsv')
+    tuple val(species), path('genes_info.tsv'), emit: reclustered_centroid_info
+    path('temp/*')
 
     script:
     """
@@ -588,22 +594,32 @@ process ParseReclusteredCentroidInfo {
     --uclust_files ${uclust_files} \
     --genome_marker_files ${marker_map_files}
 
+    mkdir temp
+    cp genes_info.tsv temp/genes_info.tsv
+    mv mapfile temp
+    cp temp/mapfile temp/markers.map
+
     """
 }
 
 process AugmentPangenomes {
 
-    label 'mem_low_single_cpu'
+    //TODO: 75 and 99 are hard coded in augment_pangenomes.py
+
+    label 'single_cpu'
     errorStrategy 'terminate'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/MIDASv3'
     publishDir "${params.db_dir_path}/pangenomes/${species}/augment/", mode: "copy"
 
     input:
-    tuple val(species), path(gene_info_tsv)
+    tuple val(species), val(rep_genome), path(gene_info_tsv)
 
     output:
     tuple val(species), path("clusters_${params.max_cluster_val}_info.tsv"), emit: max_cluster_info
     tuple val(species), path('clusters_*_info.tsv'), emit: cluster_info_file_list
+    path("centroid_*_stacked_matrix.tsv")
+    path("centroid_${params.max_cluster_val}_lifted_to_${rep_genome}.tsv")
+
 
     script:
     """
@@ -615,13 +631,14 @@ process AugmentPangenomes {
 
     python3 ${params.bin_path}/augment_pangenome.py \
     --gene_info_file ${gene_info_tsv} \
-    --cluster_thresholds \${cluster_pct_list} 
+    --cluster_thresholds \${cluster_pct_list} \
+    --rep_genome ${rep_genome}
     """
 }
 
 process CalculateContigLength {
 
-    label 'mem_low_single_cpu'
+    label 'single_cpu'
     errorStrategy 'terminate'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/MIDASv3'
     publishDir "${params.db_dir_path}/pangenomes/${species}/", mode: "copy"
@@ -651,7 +668,7 @@ process RunEggNog {
     //also note i hard coded scratch dir below for wynton compute nodes
 
     label 'mem_very_high'
-    errorStrategy 'retry'
+    errorStrategy 'finish'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/eggnog'
     publishDir "${params.db_dir_path}/pangenomes_annotation/02_eggnog/${species}", mode: "copy"
     
@@ -659,13 +676,15 @@ process RunEggNog {
     tuple val(species), path(centroid_ffn)
 
     output:
-    tuple val(species), path("${species}.emapper.annotations")
+    tuple val(species), path("${species}.emapper.annotations"), emit: eggnog_output
+    path("${species}.emapper*")
 
     script:
     """
     #! /usr/bin/env bash
     set -e
-    
+    set -x
+
     emapper.py \
     -i ${centroid_ffn} --itype CDS \
     -m diamond --sensmode more-sensitive \
@@ -680,10 +699,10 @@ process RunEggNog {
 
 process RunGeNomad {
     
-    label 'mem_medium'
-    errorStrategy 'terminate'
+    label 'mem_high'
+    errorStrategy 'retry'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/genomad'
-    publishDir "${params.db_dir_path}/pangenomes_annotations/01_mge/${species}/${genome}/genomad_output", mode: "copy"
+    publishDir "${params.db_dir_path}/pangenomes_annotation/01_mge/${species}/${genome}/genomad_output", mode: "copy"
     
     input:
     tuple val(genome), val(species), path(fna)
@@ -699,7 +718,7 @@ process RunGeNomad {
     #! /usr/bin/env bash
     set -e
     
-    genomad end-to-end --threads ${task.cpus} --cleanup --enable-score-calibration ${fna} '.' ${params.genomad_db_dir} 
+    genomad end-to-end --threads ${task.cpus} --cleanup  --min-plasmid-marker-enrichment 0.1 --enable-score-calibration ${fna} '.' ${params.genomad_db_dir} 
 
     """
 }
@@ -708,13 +727,14 @@ process RunMEFinder {
     
     label 'mem_medium'
     errorStrategy 'terminate'
-    publishDir "${params.db_dir_path}/pangenomes_annotations/01_mge/${species}/${genome}/mefinder_output", mode: "copy"
+    publishDir "${params.db_dir_path}/pangenomes_annotation/01_mge/${species}/${genome}/mefinder_output", mode: "copy"
     
     input:
     tuple val(genome), val(species), path(fna)
 
     output:
-    tuple val(genome), val(species), path("mefinder.csv")
+    tuple val(genome), val(species), path("mefinder.csv"), emit: mefinder_output
+    path('*')
 
     script:
     """
@@ -730,15 +750,18 @@ process RunMEFinder {
 
 process RunResFinder {
     
+    // TODO: make -l and -t params
+
     label 'mem_medium'
     errorStrategy 'terminate'
-    publishDir "${params.db_dir_path}/pangenomes_annotations/01_mge/${species}/${genome}/resfinder_output", mode: "copy"
+    publishDir "${params.db_dir_path}/pangenomes_annotation/01_mge/${species}/${genome}/resfinder_output", mode: "copy"
     
     input:
     tuple val(genome), val(species), path(fna)
 
     output:
-    tuple val(genome), val(species), path('ResFinder_results_tab.txt')
+    tuple val(genome), val(species), path('ResFinder_results_tab.txt'), emit: resfinder_output
+    path('*')
 
     script:
     """
@@ -766,7 +789,7 @@ process RunResFinder {
 
 process ParsePangenomeAnnotations {
 
-    label 'mem_low_single_cpu'
+    label 'single_cpu'
     errorStrategy 'terminate'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/MIDASv3'
     publishDir "${params.db_dir_path}/pangenomes_annotation/03_processed/${species}/", mode: "copy"
@@ -785,11 +808,11 @@ process ParsePangenomeAnnotations {
 
     output:
     tuple val(species), \
-    path("genomad_virus/${genome}_genomad_virus.tsv"), \
-    path("genomad_plasmid/${genome}_genomad_plasmid.tsv"), \
-    path("mefinder/${genome}_mefinder.tsv"), \
-    path("resfinder/${genome}_resfinder.tsv"), \
-    path("eggnog/${genome}_eggnog.tsv")
+    path("genomad_virus/${genome}"), \
+    path("genomad_plasmid/${genome}"), \
+    path("mefinder/${genome}"), \
+    path("resfinder/${genome}"), \
+    path("eggnog/${genome}")
 
     //TODO: make input arg names match up with enhance pangenome args
     script:
@@ -817,18 +840,18 @@ process ParsePangenomeAnnotations {
 
 process CombinePangenomeAnnotations {
 
-    label 'mem_low_single_cpu'
+    label 'single_cpu'
     errorStrategy 'terminate'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/MIDASv3'
-    publishDir "${params.db_dir_path}/pangenomes/${species}", mode: "copy"
+    publishDir "${params.db_dir_path}/pangenomes/${species}/annotation", mode: "copy"
 
     input:
-    tuple val(species), \
-    path(genomad_virus_files), \
-    path(genomad_plasmid_files), \
-    path(mefinder_files), \
-    path(resfinder_files), \
-    path(eggnog_files)
+    tuple val(species, ), \
+    path(genomad_virus_files, stageAs: 'genomad_virus/*'), \
+    path(genomad_plasmid_files, stageAs: 'genomad_plasmid/*'), \
+    path(mefinder_files, stageAs: 'mefinder/*'), \
+    path(resfinder_files, stageAs: 'resfinder/*'),  \
+    path(eggnog_files, stageAs: 'eggnog/*')
 
     output:
     tuple val(species), \
@@ -884,7 +907,7 @@ process CombinePangenomeAnnotations {
 
 process EnhancePangenome {
 
-    label 'mem_low_single_cpu'
+    label 'single_cpu'
     errorStrategy 'terminate'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/MIDASv3'
     publishDir (
@@ -893,7 +916,6 @@ process EnhancePangenome {
         pattern: "*.tsv",
         saveAs: { fn ->
             if (fn.endsWith("annot.tsv")) { "annotation/${fn}" }
-            else if (fn.endsWith("info.tsv")) { "augment/${fn}" }
             else { "${fn}" }
         }
     )
@@ -936,10 +958,10 @@ process EnhancePangenome {
 }
 
 process ComputeRunSNPsChunks {
-    label 'mem_med_single_cpu'
+    label 'single_cpu'
     errorStrategy 'terminate'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/mtest'
-    publishDir "${params.db_dir_path}chunks/sites/run/chunksize.${params.chunk_size}/${species}/", mode: "copy"
+    publishDir "${params.db_dir_path}chunks/sites/run/chunksize.${params.run_chunk_size}/${species}/", mode: "copy"
 
     input:
     tuple val(genome), val(species), path(fna)
@@ -954,7 +976,7 @@ import json
 from midas.models.species import design_run_snps_chunks, design_merge_snps_chunks
 from midas.common.utils import OutputStream
 
-run_snp_chunks_to_cache = design_run_snps_chunks('${species}', '${fna}', ${params.chunk_size})
+run_snp_chunks_to_cache = design_run_snps_chunks('${species}', '${fna}', ${params.run_chunk_size})
 
 with OutputStream('${genome}.json') as stream:
         json.dump(run_snp_chunks_to_cache, stream)
@@ -963,10 +985,10 @@ with OutputStream('${genome}.json') as stream:
 }
 
 process ComputeMergeSNPsChunks {
-    label 'mem_med_single_cpu'
+    label 'single_cpu'
     errorStrategy 'terminate'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/mtest'
-    publishDir "${params.db_dir_path}chunks/sites/merge/chunksize.${params.chunk_size}/${species}/", mode: "copy"
+    publishDir "${params.db_dir_path}chunks/sites/merge/chunksize.${params.merge_chunk_size}/${species}/", mode: "copy"
 
     input:
     tuple val(genome), val(species), path(fna)
@@ -981,7 +1003,7 @@ import json
 from midas.models.species import design_merge_snps_chunks
 from midas.common.utils import OutputStream
 
-merge_snp_chunks_to_cache = design_merge_snps_chunks('${species}', '${fna}', ${params.chunk_size})
+merge_snp_chunks_to_cache = design_merge_snps_chunks('${species}', '${fna}', ${params.merge_chunk_size})
 
 with OutputStream('${genome}.json') as stream:
         json.dump(merge_snp_chunks_to_cache, stream)

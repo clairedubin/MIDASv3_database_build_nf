@@ -17,6 +17,7 @@ from midas.common.utilities import get_contig_length, render_full_stacked_cxx_by
 # from midas.subcommands.build_pangenome import localpath
 
 
+
 """
 INPUT::FROM build_pangenome + recluster_centroids
     - genes_info.tsv, produced by recluster_centroids.py
@@ -162,6 +163,11 @@ if __name__ == "__main__":
     type=int,  
     required=True,
     )
+    CLI.add_argument(
+    "--rep_genome",
+    type=str,  
+    required=True,
+    )
     # CLI.add_argument(
     # "--fna_list",  
     # nargs="*", 
@@ -174,7 +180,7 @@ if __name__ == "__main__":
     # species = args.species
     genes_info_fp = args.gene_info_file
     cluster_thresholds = args.cluster_thresholds
-    # fna_list = args.fna_list
+    rep_genome= args.rep_genome
 
     assert os.path.isfile(genes_info_fp), f"Pangenome output {genes_info_fp} are missing."
     genes_info = pd.read_csv(genes_info_fp, delimiter="\t")
@@ -200,8 +206,8 @@ if __name__ == "__main__":
 
     # repgenome = midas_db.uhgg.representatives[species_id]
 
-    # centroid_xx_info = render_full_stacked_cxx_by_genome(genes_info, "centroid_75")
-    # centroid_xx_info.to_csv(f"augment/centroid_75_stacked_matrix.tsv", sep='\t', index=False)
+    centroid_xx_info = render_full_stacked_cxx_by_genome(genes_info, "centroid_75")
+    centroid_xx_info.to_csv(f"centroid_75_stacked_matrix.tsv", sep='\t', index=False)
 
-    # cxx_lifted_to_qry = list_cxx_coordinate_to_genome(genes_info, "centroid_99", repgenome)
-    # cxx_lifted_to_qry.to_csv(f"augment/centroid_99_lifted_to_{repgenome}.tsv", sep='\t', index=False)
+    cxx_lifted_to_qry = list_cxx_coordinate_to_genome(genes_info, "centroid_99", rep_genome)
+    cxx_lifted_to_qry.to_csv(f"centroid_99_lifted_to_{rep_genome}.tsv", sep='\t', index=False)

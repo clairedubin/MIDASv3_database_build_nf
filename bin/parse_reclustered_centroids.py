@@ -2,6 +2,7 @@
 import os
 from collections import defaultdict
 import argparse
+import pandas as pd
 from midas.common.utils import select_from_tsv, InputStream, OutputStream, cat_files
 from midas.params.schemas import GENE_LENGTH_SCHEMA, MARKER_INFO_SCHEMA, PANGENOME_INFO_SCHEMA
 
@@ -64,19 +65,26 @@ def scan_mapfile(mapfile):
 def read_gene_info(centroid_info, gene_info_file, percent_id):
     # Parse intermediate gene_info_cdhit.tsv
     with InputStream(gene_info_file) as stream:
-        for r in select_from_tsv(stream, selected_columns=['gene_id', 'centroid_99'], schema={'gene_id':str, 'centroid_99':str}):
+        for r in select_from_tsv(stream, selected_columns=['gene_id', f'centroid_{percent_id}'], schema={'gene_id':str, f'centroid_{percent_id}':str}):
             centroid_info[r[0]][percent_id] = r[1]
 
 
-def augment_gene_info(centroid_info, gene_to_marker, dict_of_gene_length, gene_info_file):
+def augment_gene_info(centroid_info, gene_to_marker, dict_of_gene_length, output_file_name):
     """ Augment gene_info.txt with two additional columns: gene_length and marker_id """
-    with OutputStream(gene_info_file) as stream:
-        stream.write("\t".join(PANGENOME_INFO_SCHEMA.keys()) + "\n")
-        for gene_id, r in centroid_info.items():
-            gene_len = dict_of_gene_length[gene_id]
-            marker_id = gene_to_marker[gene_id] if gene_id in gene_to_marker else ""
-            val = [gene_id] + list(r.values()) + [gene_len, marker_id]
-            stream.write("\t".join(map(str, val)) + "\n")
+
+    df = pd.DataFrame.from_dict(centroid_info).T
+    df['gene_length'] = df.index.map(dict_of_gene_length)
+    df['marker_id'] = df.index.map(gene_to_marker)
+    df.to_csv(output_file_name)
+
+    ## redone as above because if centroid cols weren't in order, they would assign the wrong labels
+    # with OutputStream(output_file_name) as stream:
+    #     stream.write("\t".join(['gene_id']+centroid_cols+["gene_length","marker_id"]) + "\n")
+    #     for gene_id, r in centroid_info.items():
+    #         gene_len = dict_of_gene_length[gene_id]
+    #         marker_id = gene_to_marker[gene_id] if gene_id in gene_to_marker else ""
+    #         val = [gene_id] + list(r.values()) + [gene_len, marker_id]
+    #         stream.write("\t".join(map(str, val)) + "\n")
 
 
 def xref(cluster_files):
@@ -154,7 +162,7 @@ if __name__ == "__main__":
     cluster_files = {}
     cluster_files[max_percent] = ['', gene_info_file]
 
-    for f in uclust_files:
+    for f in sorted(uclust_files):
         assert os.path.exists(f)
         ##TODO: assert that f matches a regex uclust.XX.txt
 
