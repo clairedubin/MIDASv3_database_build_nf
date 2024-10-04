@@ -52,7 +52,10 @@ def xref(cluster_files):
 
 def write_gene_info(centroid_info, percents, gene_info_file):
     # Write centroid_info[gene][percent_id] to gene_info_file
+    print(centroid_info)
+    print(percents)
     with open(gene_info_file, 'w') as gene_info:
+
         header = ['gene_id'] + [f"centroid_{pid}" for pid in percents]
         gene_info.write('\t'.join(header) + '\n')
         genes = centroid_info.keys()
@@ -91,6 +94,9 @@ if __name__ == "__main__":
     uclust_files = sys.argv[1:]
 
     cluster_files = {}
+
+    uclust_files = sorted(uclust_files)[::-1]
+
     for f in uclust_files:
         assert os.path.exists(f)
         ##TODO: assert that f matches a regex uclust.XX.txt

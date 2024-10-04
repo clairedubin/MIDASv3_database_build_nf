@@ -164,12 +164,12 @@ if __name__ == "__main__":
     required=True,
     )
     CLI.add_argument(
-    "--mefinder_csv",
+    "--mefinder_file",
     type=str,  
     required=True,
     )
     CLI.add_argument(
-    "--resfinder_txt",
+    "--resfinder_file",
     type=str,  
     required=True,
     )
@@ -205,12 +205,12 @@ local_dest = f"genomad_plasmid/{genome_id}"
 write_processed_genome_annot(df, all_genes, local_dest)
 
 # MEfinder
-df = parse_mefinder(args.mefinder_csv)
+df = parse_mefinder(args.mefinder_file)
 local_dest = f"mefinder/{genome_id}"
 write_processed_genome_annot(df, all_genes, local_dest)
 
 # Resfinder
-df = parse_resfinder(args.resfinder_txt)
+df = parse_resfinder(args.resfinder_file)
 local_dest = f"resfinder/{genome_id}"
 write_processed_genome_annot(df, all_genes, local_dest)
 

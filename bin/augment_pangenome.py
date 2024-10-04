@@ -204,10 +204,11 @@ if __name__ == "__main__":
 
     # Dont think these are ever used?
 
-    # repgenome = midas_db.uhgg.representatives[species_id]
 
-    centroid_xx_info = render_full_stacked_cxx_by_genome(genes_info, "centroid_75")
-    centroid_xx_info.to_csv(f"centroid_75_stacked_matrix.tsv", sep='\t', index=False)
+    lowest_threshold, highest_threshold = min(cluster_thresholds), max(cluster_thresholds)
 
-    cxx_lifted_to_qry = list_cxx_coordinate_to_genome(genes_info, "centroid_99", rep_genome)
-    cxx_lifted_to_qry.to_csv(f"centroid_99_lifted_to_{rep_genome}.tsv", sep='\t', index=False)
+    centroid_xx_info = render_full_stacked_cxx_by_genome(genes_info, f"centroid_{lowest_threshold}")
+    centroid_xx_info.to_csv(f"centroid_{lowest_threshold}_stacked_matrix.tsv", sep='\t', index=False)
+
+    cxx_lifted_to_qry = list_cxx_coordinate_to_genome(genes_info, f"centroid_{highest_threshold}", rep_genome)
+    cxx_lifted_to_qry.to_csv(f"centroid_{highest_threshold}_lifted_to_{rep_genome}.tsv", sep='\t', index=False)

@@ -21,21 +21,23 @@ total_threads=$7
 total_mem=$8
 script_dir=$9
 
+base_dir=$PWD
+
+#extract '99' from centroids.99.clean.ffn
+cluster_threshold=$(echo "$centroids_clean_ffn" | grep -oP '(?<=centroids\.)\d+(?=\.clean\.ffn)')
+
+# vsearch_threads=4
+# vsearch_jobs=$((total_threads / vsearch_threads))
+# thread2=$((total_threads / 2))
 
 # pangenome_dir="$2"
 # total_threads="$3"
 # total_mem="$4" 
 # script_dir="$5"
-base_dir=$PWD
-
-vsearch_threads=4
-vsearch_jobs=$((total_threads / vsearch_threads))
-thread2=$((total_threads / 2))
-
 
 # vsearch_threads=8
 # vsearch_jobs=$((total_threads / vsearch_threads))
-thread2=$((total_threads / 2))
+# thread2=$((total_threads / 2))
 
 ####### INPUTS: global scratch directory
 # species_dir="${pangenome_dir}/${species_id}"
@@ -72,7 +74,7 @@ if [[ -s ${centroids_ambig_ffn} ]]; then
     # For each ambiguous centroids, get all the member sequences.
     # Two intermediate files: members.id and members.ffn.
     cat ${ambiguous_list} | \
-      xargs -Ixx -P ${thread2} bash -c "bash ${script_dir}/get_members.sh xx $genes_ffn $genes_info $members_dir/xx.mems.ffn"
+      xargs -Ixx -P ${total_threads} bash -c "bash ${script_dir}/get_members.sh xx $genes_ffn $genes_info $members_dir/xx.mems.ffn"
 
     # Get list of centroids with more than one members
     multimember_centroids="${members_dir}/centroids_with_multimembers"
@@ -80,11 +82,11 @@ if [[ -s ${centroids_ambig_ffn} ]]; then
 
     # Select new centroids for the previously ambiguous centroid99 clusters
     cat ${multimember_centroids} | \
-      xargs -Ixx -P ${vsearch_jobs} bash -c "vsearch --cluster_fast $members_dir/xx.mems.ffn --threads ${vsearch_threads} --quiet --id 0.99 --centroids $vsearch_dir/xx.centroids -uc $vsearch_dir/xx.clusters"
+      xargs -Ixx -P ${total_threads} bash -c "vsearch --cluster_fast $members_dir/xx.mems.ffn --threads 1 --quiet --id 0.99 --centroids $vsearch_dir/xx.centroids -uc $vsearch_dir/xx.clusters"
 
     # gather gene info for newly clustered centroids_99 via research
     cat ${multimember_centroids} | \
-      xargs -Ixx -P ${thread2} bash -c "bash ${script_dir}/gather_geneinfo.sh $vsearch_dir/xx.clusters $vsearch_dir/xx.geneinfo"
+      xargs -Ixx -P ${total_threads} bash -c "bash ${script_dir}/gather_geneinfo.sh $vsearch_dir/xx.clusters $vsearch_dir/xx.geneinfo"
 
     # collect related gene info changes
     gene_info_add="$info_dir/vsearch_gene_info_add.tsv"
@@ -101,7 +103,7 @@ if [[ -s ${centroids_ambig_ffn} ]]; then
     cat ${centroids_clean_ffn} "${vsearch_dir}/centroids_add.ffn" > ${vsearch_centroids_ffn}
   fi
 else
-  echo "No ambiguous centroids_99"
+  echo "No ambiguous centroids_${cluster_threshold}"
   cp ${genes_info} ${gene_info_vsearch}
   cp ${centroids_clean_ffn} ${vsearch_centroids_ffn}
 fi
@@ -171,12 +173,12 @@ fi
 
 is_success="${out_dir}/PIPELINE_SUCCESS"
 if [[ ! -e ${is_success} ]]; then
-  awk '{ if ($0 ~ /^>/) {print $0} else {print toupper($0)}}' ${cdhit_centroids_ffn} > ${out_dir}/centroids.99.ffn
+  awk '{ if ($0 ~ /^>/) {print $0} else {print toupper($0)}}' ${cdhit_centroids_ffn} > ${out_dir}/centroids.${cluster_threshold}.ffn
   seqkit grep -w 0 -f ${info_dir}/list_of_cdhit_genes ${genes_ffn} > ${out_dir}/genes.ffn
   cp ${gene_info_cdhit} "${out_dir}/gene_info.txt" #<--
   grep -Fwf <(cut -f1 ${gene_info_cdhit}) ${genes_len} > "${out_dir}/genes.len"
 
-  if [ -s ${out_dir}/centroids.99.ffn ]; then
+  if [ -s ${out_dir}/centroids.${cluster_threshold}.ffn ]; then
     touch $is_success
   fi
 fi

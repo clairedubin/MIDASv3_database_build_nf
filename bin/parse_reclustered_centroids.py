@@ -63,19 +63,23 @@ def scan_mapfile(mapfile):
 
 
 def read_gene_info(centroid_info, gene_info_file, percent_id):
-    # Parse intermediate gene_info_cdhit.tsv
+    # Parse intermediate gene_info.txt
+    print('here')
     with InputStream(gene_info_file) as stream:
         for r in select_from_tsv(stream, selected_columns=['gene_id', f'centroid_{percent_id}'], schema={'gene_id':str, f'centroid_{percent_id}':str}):
             centroid_info[r[0]][percent_id] = r[1]
+    print(centroid_info)
 
 
 def augment_gene_info(centroid_info, gene_to_marker, dict_of_gene_length, output_file_name):
     """ Augment gene_info.txt with two additional columns: gene_length and marker_id """
 
     df = pd.DataFrame.from_dict(centroid_info).T
+    df.columns = [f'centroid_{i}' for i in df.columns]
+    df.index.name = 'gene_id'
     df['gene_length'] = df.index.map(dict_of_gene_length)
     df['marker_id'] = df.index.map(gene_to_marker)
-    df.to_csv(output_file_name)
+    df.to_csv(output_file_name, sep='\t')
 
     ## redone as above because if centroid cols weren't in order, they would assign the wrong labels
     # with OutputStream(output_file_name) as stream:
@@ -103,9 +107,11 @@ def xref(cluster_files):
 
     # Check for a problem that occurs with improper import of genomes (when contig names clash).
     for g in centroid_info:
+
         cg = centroid_info[g][max_percent_id]
         ccg = centroid_info[cg][max_percent_id]
-        assert cg == ccg, f"The {max_percent_id}-centroid relation should be idempotent, however, {cg} != {ccg}."
+
+        assert cg == ccg, f"The {max_percent_id}-centroid relation should be idempotent, however, {cg} != {ccg}. {g}"
 
     # Infer coarser clusters assignments for all genes by transitivity
     for gc in centroid_info.values():
@@ -162,18 +168,21 @@ if __name__ == "__main__":
     cluster_files = {}
     cluster_files[max_percent] = ['', gene_info_file]
 
-    for f in sorted(uclust_files):
+    for f in sorted(uclust_files)[::-1]:
+
         assert os.path.exists(f)
         ##TODO: assert that f matches a regex uclust.XX.txt
 
         cluster_percent = int(f.split('.')[1].replace('.txt',''))
-
+        if cluster_percent == max_percent:
+            continue
         ##including empty str so dict format is compatible with definitions above
         ##can change this eventually
         cluster_files[cluster_percent] = ['', f]
+    
+    # print(cluster_files)
 
     centroid_info = xref(cluster_files)
-    print(centroid_info)
 
     # augment temp/vsearch/gene_info.txt with gene_length
     # gene_length_fp = midas_db.get_target_layout("pangenome_tempfile", False, species_id, "vsearch", "genes.len")
