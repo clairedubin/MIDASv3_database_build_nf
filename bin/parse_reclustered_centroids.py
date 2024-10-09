@@ -3,9 +3,9 @@ import os
 from collections import defaultdict
 import argparse
 import pandas as pd
-from midas.common.utils import select_from_tsv, InputStream, OutputStream, cat_files
-from midas.params.schemas import GENE_LENGTH_SCHEMA, MARKER_INFO_SCHEMA, PANGENOME_INFO_SCHEMA
-
+import re
+from midas.common.utils import select_from_tsv, InputStream, cat_files
+from midas.params.schemas import GENE_LENGTH_SCHEMA, MARKER_INFO_SCHEMA
 
 """
 Input:
@@ -99,7 +99,7 @@ def xref(cluster_files):
     percents = cluster_files.keys()
     max_percent_id = max(percents)
     centroid_info = defaultdict(dict)
-    for percent_id, (_, uclust_file) in cluster_files.items():
+    for percent_id, uclust_file in cluster_files.items():
         if percent_id == max_percent_id:
             read_gene_info(centroid_info, uclust_file, percent_id)
         else:
@@ -166,22 +166,20 @@ if __name__ == "__main__":
     uclust_files = args.uclust_files
 
     cluster_files = {}
-    cluster_files[max_percent] = ['', gene_info_file]
+    cluster_files[max_percent] = gene_info_file
 
     for f in sorted(uclust_files)[::-1]:
 
         assert os.path.exists(f)
-        ##TODO: assert that f matches a regex uclust.XX.txt
+        assert re.match(r'^uclust\.\d{1,2}\.txt$', f), \
+        "File name does not match the required format uclust.XX.txt"
 
         cluster_percent = int(f.split('.')[1].replace('.txt',''))
         if cluster_percent == max_percent:
             continue
-        ##including empty str so dict format is compatible with definitions above
-        ##can change this eventually
-        cluster_files[cluster_percent] = ['', f]
-    
-    # print(cluster_files)
 
+        cluster_files[cluster_percent] = f
+    
     centroid_info = xref(cluster_files)
 
     # augment temp/vsearch/gene_info.txt with gene_length
