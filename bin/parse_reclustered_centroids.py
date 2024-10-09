@@ -4,7 +4,7 @@ from collections import defaultdict
 import argparse
 import pandas as pd
 import re
-from parse_centroids import parse_uclust, read_uclust_info
+from parse_centroids import read_uclust_info
 from midas.common.utils import select_from_tsv, InputStream, cat_files
 from midas.params.schemas import GENE_LENGTH_SCHEMA, MARKER_INFO_SCHEMA
 
