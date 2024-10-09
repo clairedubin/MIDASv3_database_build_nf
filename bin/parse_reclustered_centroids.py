@@ -4,6 +4,7 @@ from collections import defaultdict
 import argparse
 import pandas as pd
 import re
+from parse_centroids import parse_uclust, read_uclust_info
 from midas.common.utils import select_from_tsv, InputStream, cat_files
 from midas.params.schemas import GENE_LENGTH_SCHEMA, MARKER_INFO_SCHEMA
 
@@ -18,31 +19,7 @@ Output:
     - centroids.99.ffn
     - temp/centroids.xx.ffn
 """
-###TODO: make these shared functions with parse_centroids.py
 
-def parse_uclust(uclust_file, select_columns):
-    # The uclust TSV file does not contain a header line.  So, we have to hardcode the schema here.  Then select specified columns.
-    all_uclust_columns = ['type', 'cluster_id', 'size', 'pid', 'strand', 'skip1', 'skip2', 'skip3', 'gene_id', 'centroid_id']
-    with open(uclust_file, 'r') as ucf:
-        for r in select_from_tsv(ucf, select_columns, all_uclust_columns):
-            yield r
-
-
-def read_uclust_info(centroid_info, uclust_file, percent_id):
-    # Get centroid_info from uclust
-    for r_type, r_gene, r_centroid in parse_uclust(uclust_file, ['type', 'gene_id', 'centroid_id']):
-        if r_type == 'S':
-            # r itself is the centroid of its cluster
-            centroid_info[r_gene][percent_id] = r_gene
-        elif r_type == 'H':
-            # r is not itself a centroid
-            centroid_info[r_gene][percent_id] = r_centroid
-        else:
-            # ignore all other r types
-            pass
-
-
-# @retry
 def scan_gene_length(gene_length_file):
     gene_length_dict = {}
     with InputStream(gene_length_file) as stream:
@@ -64,12 +41,9 @@ def scan_mapfile(mapfile):
 
 def read_gene_info(centroid_info, gene_info_file, percent_id):
     # Parse intermediate gene_info.txt
-    print('here')
     with InputStream(gene_info_file) as stream:
         for r in select_from_tsv(stream, selected_columns=['gene_id', f'centroid_{percent_id}'], schema={'gene_id':str, f'centroid_{percent_id}':str}):
             centroid_info[r[0]][percent_id] = r[1]
-    print(centroid_info)
-
 
 def augment_gene_info(centroid_info, gene_to_marker, dict_of_gene_length, output_file_name):
     """ Augment gene_info.txt with two additional columns: gene_length and marker_id """
@@ -80,15 +54,6 @@ def augment_gene_info(centroid_info, gene_to_marker, dict_of_gene_length, output
     df['gene_length'] = df.index.map(dict_of_gene_length)
     df['marker_id'] = df.index.map(gene_to_marker)
     df.to_csv(output_file_name, sep='\t')
-
-    ## redone as above because if centroid cols weren't in order, they would assign the wrong labels
-    # with OutputStream(output_file_name) as stream:
-    #     stream.write("\t".join(['gene_id']+centroid_cols+["gene_length","marker_id"]) + "\n")
-    #     for gene_id, r in centroid_info.items():
-    #         gene_len = dict_of_gene_length[gene_id]
-    #         marker_id = gene_to_marker[gene_id] if gene_id in gene_to_marker else ""
-    #         val = [gene_id] + list(r.values()) + [gene_len, marker_id]
-    #         stream.write("\t".join(map(str, val)) + "\n")
 
 
 def xref(cluster_files):
