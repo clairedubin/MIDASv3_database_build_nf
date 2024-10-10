@@ -30,7 +30,7 @@ params.resfinder_db_dir = "/wynton/protected/home/sirota/clairedubin/databases/r
 params.resfinder_env_dir = "/wynton/protected/home/sirota/clairedubin/envs/resfinder_env"
 params.blastn_dir = "/wynton/protected/home/sirota/clairedubin/bin/ncbi-blast-2.14.1+/bin"
 params.git_dir = "/wynton/protected/home/sirota/clairedubin/bin/git-2.39.5"
-params.conda_env_path = "/wynton/protected/home/sirota/clairedubin/anaconda3/envs/MIDASv3"
+// params.conda_env_path = "/wynton/protected/home/sirota/clairedubin/anaconda3/envs/MIDASv3"
 params.bin_dir = workflow.launchDir + "/bin"
 
 // Ensure directories end with trailing "/" characters

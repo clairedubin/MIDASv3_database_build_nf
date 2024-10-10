@@ -2,7 +2,6 @@
 process ClusterCentroids {
     label 'mem_high'
     errorStrategy 'terminate'
-    conda "${params.conda_env_path}"
     publishDir "${params.db_path}/pangenomes/${species}/temp/vsearch/", mode: "copy"
 
     input:
