@@ -5,9 +5,11 @@ profiles {
         penv = 'smp'
         maxRetries = 3
         cache = 'lenient'
-	      // clusterOptions = { " -S /bin/bash -R y -l h_vmem=${task.memory.toString().replaceAll(/[\sB]/,'')}" }
-        // scratch = true
-        // errorStrategy = 'retry'
+        // conda.enabled = true
+        // retry with higher memory if there's an out of memory error, else terminate
+        errorStrategy = { "${task.exitStatus}" == "140" ? 'retry' : 'terminate' }
+        
+        // container = '/path/to/apptainer.img'
 
         withLabel: 'mem_very_high' {
           cpus = 16
@@ -41,7 +43,7 @@ profiles {
     apptainer {
       enabled = true
       cacheDir = '/wynton/protected/home/sirota/clairedubin/singularity_image/'
-      autoMounts = true
+      // autoMounts = true
     } // end apptainer
   } // end standard profile
 }

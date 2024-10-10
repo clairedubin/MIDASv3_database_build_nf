@@ -5,9 +5,7 @@ nextflow.enable.dsl=2
 // TODO:
 // check that genome IDs are posix compliant
 // add size for grouptuple for efficiency
-// make has_ambiguous_bases common functions
 // containerize stuff
-// add retry as error strategy
 // clean up files in bin 
 // change eggnog db loading for efficiency
 
@@ -30,7 +28,7 @@ params.resfinder_db_dir = "/wynton/protected/home/sirota/clairedubin/databases/r
 params.resfinder_env_dir = "/wynton/protected/home/sirota/clairedubin/envs/resfinder_env"
 params.blastn_dir = "/wynton/protected/home/sirota/clairedubin/bin/ncbi-blast-2.14.1+/bin"
 params.git_dir = "/wynton/protected/home/sirota/clairedubin/bin/git-2.39.5"
-params.conda_env_path = "/wynton/protected/home/sirota/clairedubin/anaconda3/envs/mtest"
+params.conda_env_path = "/wynton/protected/home/sirota/clairedubin/anaconda3/envs/MIDASv3"
 params.bin_dir = workflow.launchDir + "/bin"
 
 // Ensure directories end with trailing "/" characters
@@ -229,7 +227,6 @@ workflow {
 process AnnotateGenomes {
 
     label 'mem_very_high'
-    errorStrategy 'terminate'
     conda "${params.conda_env_path}"
     publishDir "${params.db_path}/gene_annotations/${species}/${genome}", mode: "copy"
 
@@ -265,7 +262,6 @@ process AnnotateGenomes {
 
 process GenerateGeneFeatures {
     label 'single_cpu'
-    errorStrategy 'terminate'
     conda "${params.conda_env_path}"
     publishDir "${params.db_path}/gene_annotations/${species}/${genome}", mode: "copy"
 
@@ -307,7 +303,6 @@ with open("${genome}.genes", 'w') as f:
 
 process HMMMarkerSearch {
     label 'mem_medium'
-    errorStrategy 'terminate'
     conda "${params.conda_env_path}"
     publishDir "${params.db_path}/markers/${params.marker_set}/temp/${species}/${genome}", mode: "copy"
     
@@ -330,7 +325,6 @@ process HMMMarkerSearch {
 
 process ParseHMMMarkers {
     label 'single_cpu'
-    errorStrategy 'terminate'
     conda "${params.conda_env_path}"
     publishDir "${params.db_path}/markers/${params.marker_set}/temp/${species}/${genome}", mode: "copy"
 
@@ -354,7 +348,6 @@ process ParseHMMMarkers {
 
 process BuildMarkerDB {
     label 'single_cpu'
-    errorStrategy 'terminate'
     conda "${params.conda_env_path}"
     publishDir "${params.db_path}/markers/${params.marker_set}", mode: "copy"
 
@@ -382,7 +375,6 @@ process BuildMarkerDB {
 process CleanGenes {
 
     label 'single_cpu'
-    errorStrategy 'terminate'
     conda "${params.conda_env_path}"
     publishDir "${params.db_path}/gene_annotations/${species}/${genome}", mode: "copy"
 
@@ -421,7 +413,6 @@ with open(output_genes, 'w') as o_genes, \
 
 process CombineCleanedGenes {
     label 'single_cpu'
-    errorStrategy 'terminate'
     conda "${params.conda_env_path}"
     publishDir "${params.db_path}/pangenomes/${species}/", mode: "copy"
 
@@ -441,19 +432,11 @@ process CombineCleanedGenes {
     cat ${gene_ffns} > genes.ffn
     cat ${gene_lens} > genes.len
     
-    if [ ! -s 'genes.ffn' ]; then
-        echo ERROR: genes.ffn is empty
-        exit 1 
-    elif [ ! -s 'genes.len' ]; then
-        echo ERROR: genes.len is empty
-        exit 1 
-    fi
     """
 }
 
 process CleanCentroids {
     label 'single_cpu'
-    errorStrategy 'terminate'
     conda "${params.conda_env_path}"
     publishDir "${params.db_path}/pangenomes/${species}/temp/vsearch/", mode: "copy"
 
@@ -497,7 +480,6 @@ with open(output_ambiguous, 'w') as o_ambiguous, \
 process ParseCentroidInfo {
 
     label 'single_cpu'
-    errorStrategy 'terminate'
     conda "${params.conda_env_path}"
     publishDir "${params.db_path}/pangenomes/${species}/temp/vsearch/", mode: "copy"
 
@@ -521,7 +503,6 @@ process ParseCentroidInfo {
 process RefineClusters {
 
     label 'mem_medium'
-    errorStrategy 'terminate'
     conda "${params.conda_env_path}"
     publishDir (
         path: "${params.db_path}/pangenomes/${species}",
@@ -554,12 +535,6 @@ process RefineClusters {
         ${task.memory.toMega()} \
         "${params.midas_path}bin" 
 
-
-    if [ ! -e temp/cdhit/PIPELINE_SUCCESS ]; then
-        echo ERROR: Cluster refinement not complete
-        exit 1 
-    fi
-
     cp "temp/cdhit/centroids.${params.max_cluster_val}.ffn" centroids.ffn
 
 
@@ -568,7 +543,6 @@ process RefineClusters {
 
 process ReClusterCentroids {
     label 'mem_high'
-    errorStrategy 'terminate'
     conda "${params.conda_env_path}"
     publishDir "${params.db_path}/pangenomes/${species}/temp/", mode: "copy"
 
@@ -596,7 +570,6 @@ process ReClusterCentroids {
 process ParseReclusteredCentroidInfo {
 
     label 'single_cpu'
-    errorStrategy 'terminate'
     conda "${params.conda_env_path}"
     publishDir "${params.db_path}/pangenomes/${species}/", mode: "copy"
 
@@ -637,7 +610,6 @@ process ParseReclusteredCentroidInfo {
 process AugmentPangenomes {
 
     label 'single_cpu'
-    errorStrategy 'terminate'
     conda "${params.conda_env_path}"
     publishDir "${params.db_path}/pangenomes/${species}/augment/", mode: "copy"
 
@@ -668,7 +640,6 @@ process AugmentPangenomes {
 process CalculateContigLength {
 
     label 'single_cpu'
-    errorStrategy 'terminate'
     conda "${params.conda_env_path}"
     publishDir "${params.db_path}/pangenomes/${species}/", mode: "copy"
 
@@ -697,7 +668,6 @@ process RunEggNog {
     //also note i hard coded scratch dir below for wynton compute nodes
 
     label 'mem_very_high'
-    errorStrategy 'finish'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/eggnog'
     publishDir "${params.db_path}/pangenomes_annotation/02_eggnog/${species}", mode: "copy"
     
@@ -730,7 +700,6 @@ process RunEggNog {
 process RunGeNomad {
     
     label 'mem_high'
-    errorStrategy 'retry'
     conda '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/genomad'
     publishDir "${params.db_path}/pangenomes_annotation/01_mge/${species}/${genome}/genomad_output", mode: "copy"
     
@@ -760,7 +729,6 @@ process RunGeNomad {
 process RunMEFinder {
     
     label 'mem_medium'
-    errorStrategy 'terminate'
     publishDir "${params.db_path}/pangenomes_annotation/01_mge/${species}/${genome}/mefinder_output", mode: "copy"
     
     input:
@@ -785,7 +753,6 @@ process RunMEFinder {
 process RunResFinder {
     
     label 'mem_medium'
-    errorStrategy 'terminate'
     publishDir "${params.db_path}/pangenomes_annotation/01_mge/${species}/${genome}/resfinder_output", mode: "copy"
     
     input:
@@ -821,7 +788,6 @@ process RunResFinder {
 process ParsePangenomeAnnotations {
 
     label 'single_cpu'
-    errorStrategy 'terminate'
     conda "${params.conda_env_path}"
     publishDir "${params.db_path}/pangenomes_annotation/03_processed/${species}/", mode: "copy"
 
@@ -871,7 +837,6 @@ process ParsePangenomeAnnotations {
 process CombinePangenomeAnnotations {
 
     label 'single_cpu'
-    errorStrategy 'terminate'
     conda "${params.conda_env_path}"
     publishDir "${params.db_path}/pangenomes/${species}/annotation", mode: "copy"
 
@@ -938,7 +903,6 @@ process CombinePangenomeAnnotations {
 process EnhancePangenome {
 
     label 'single_cpu'
-    errorStrategy 'terminate'
     conda "${params.conda_env_path}"
     publishDir (
         path: "${params.db_path}/pangenomes/${species}",
@@ -989,7 +953,6 @@ process EnhancePangenome {
 
 process ComputeRunSNPsChunks {
     label 'single_cpu'
-    errorStrategy 'terminate'
     conda "${params.conda_env_path}"
     publishDir "${params.db_path}/chunks/sites/run/chunksize.${params.run_chunk_size}/${species}/", mode: "copy"
 
@@ -1016,7 +979,6 @@ with OutputStream('${genome}.json') as stream:
 
 process ComputeMergeSNPsChunks {
     label 'single_cpu'
-    errorStrategy 'terminate'
     conda "${params.conda_env_path}"
     publishDir "${params.db_path}/chunks/sites/merge/chunksize.${params.merge_chunk_size}/${species}/", mode: "copy"
 
