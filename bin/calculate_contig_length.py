@@ -12,10 +12,6 @@ def write_contig_length(dict_of_contig_length, contig_length_fp):
                 stream.write("\t".join(vals) + "\n")
 
 
-def write_cxx_info(c99_df, cluster_info_fp):
-    c99_df.to_csv(cluster_info_fp, sep='\t', index=False)
-
-
 
 if __name__ == "__main__":
 
@@ -38,5 +34,9 @@ if __name__ == "__main__":
         genome_id = genomefna.replace('.fna','')
         dict_of_contig_length[genome_id] = get_contig_length(genomefna)
 
-
-    write_contig_length(dict_of_contig_length, "contigs.len")
+    with open("contigs.len", 'w') as f:
+            f.write("\t".join(["genome_id", "contig_id", "contig_length"]) + "\n")
+            for gid, r in dict_of_contig_length.items():
+                for cid, clen in r.items():
+                    vals = [gid, cid, str(clen)]
+                    f.write("\t".join(vals) + "\n")

@@ -1,16 +1,9 @@
 #!/usr/bin/env python3
-import os
-import sys
-from itertools import chain
 import pandas as pd
 import argparse
+from io import StringIO
+from pathlib import Path
 from pybedtools import BedTool
-
-from midas.common.argparser import add_subcommand
-from midas.common.utils import tsprint, command, multithreading_map, pythonpath, num_physical_cores, copy_star
-from midas.common.utilities import decode_genomes_arg, decode_species_arg, scan_eggnog
-from midas.models.midasdb import MIDAS_DB
-from midas.params.inputs import MIDASDB_NAMES
 
 """
 For given genome, we take the following inputs:
@@ -49,6 +42,13 @@ def parse_genomad_virus_genes(file_path):
 
     return df
 
+def scan_eggnog(filename):
+    # Read the file line-by-line and exclude lines starting with '##'
+    with open(filename, 'r') as file:
+        lines = [line for line in file if not line.startswith('##')]
+    # Convert the filtered lines into a DataFrame
+    df = pd.read_csv(StringIO('\n'.join(lines)), sep='\t')
+    return df
 
 def parse_genomad_plasmid_genes(file_path):
     """ Parse Genomad plasmid genes TSV into DataFrame """
@@ -117,11 +117,11 @@ def merge_annot_with_genes(df, all_genes):
 
 def write_processed_genome_annot(df, all_genes, local_dest):
     if df.empty:
-        command(f"touch {local_dest}")
+        Path(local_dest).touch()
     else:
         df = merge_annot_with_genes(df, all_genes)
         if df.empty:
-            command(f"touch {local_dest}")
+            Path(local_dest).touch()
         else:
             df.to_csv(local_dest, sep='\t', index=False, header=False)
 

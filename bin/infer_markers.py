@@ -1,23 +1,26 @@
 #!/usr/bin/env python3
-import os
-import sys
 import argparse
-from midas.common.argparser import add_subcommand, SUPPRESS
-from midas.common.utils import tsprint, InputStream, retry, command, multithreading_map, find_files, upload, pythonpath, upload_star, num_physical_cores
-from midas.common.utilities import scan_genes, decode_genomes_arg
-from midas.models.midasdb import MIDAS_DB
-from midas.params.inputs import hmmsearch_max_evalue, hmmsearch_min_cov, MIDASDB_NAMES
+from Bio import SeqIO
+# from midas.common.utilities import scan_genes
+# from midas.params.inputs import hmmsearch_max_evalue, hmmsearch_min_cov
 
 ###EXAMPLE USAGE
 
-#python3 bin/infer_markers.py --genome GCA_007120565.1 --species 117088 --hmmsearch_file test_db/markers/phyeco/temp/117088/GCA_007120565.1/GCA_007120565.1.hmmsearch --annotation_ffn test_db/gene_annotations/117088/GCA_007120565.1/GCA_007120565.1.ffn
+#python3 bin/infer_markers.py --genome GCA_007120565.1 --species 117088 --hmmsearch_file GCA_007120565.1.hmmsearch --annotation_ffn GCA_007120565.1.ffn
+
+def scan_genes(annotated_genes):
+    """" Lookup of seq_id to sequence for PATRIC genes """
+    gene_seqs = {}
+    for rec in SeqIO.parse(annotated_genes, 'fasta'):
+        gene_seqs[rec.id] = str(rec.seq).upper()
+    return gene_seqs
 
 def find_hits(hmmsearch_file):
     hits = {}
     for r in parse_hmmsearch(hmmsearch_file):
-        if r['evalue'] > hmmsearch_max_evalue:
+        if r['evalue'] > float(args.hmmsearch_max_evalue):
             continue
-        if min(r['qcov'], r['tcov']) < hmmsearch_min_cov:
+        if min(r['qcov'], r['tcov']) < float(args.hmmsearch_min_cov):
             continue
         if r['target'] not in hits:
             hits[r['target']] = r
@@ -27,7 +30,7 @@ def find_hits(hmmsearch_file):
 
 def parse_hmmsearch(hmmsearch_file):
     """ Parse HMMER domblout files. Return data-type formatted dictionary """
-    with InputStream(hmmsearch_file) as f_in:
+    with open(hmmsearch_file, 'r') as f_in:
         for line in f_in:
             if line[0] == "#":
                 continue
@@ -74,5 +77,12 @@ if __name__ == "__main__":
                            dest='annotation_ffn',
                            required=True,
                            help="path to annotation_ffn") 
+    parser.add_argument('--hmmsearch_max_evalue',
+                        dest='hmmsearch_max_evalue',
+                        required=True)
+    parser.add_argument('--hmmsearch_min_cov',
+                        dest='hmmsearch_min_cov',
+                        required=True)
     args = parser.parse_args()
+    
     compute_marker_genes(args)

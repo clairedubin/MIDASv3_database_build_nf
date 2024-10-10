@@ -3,11 +3,11 @@
 nextflow.enable.dsl=2
 
 // TODO:
-// check that genome IDs are posix compliant
 // add size for grouptuple for efficiency
 // containerize stuff
 // clean up files in bin 
 // change eggnog db loading for efficiency
+// rm bin/calculate_contig_length.py
 
 //// PARAMS
 params.centroid_cluster_percents = [99, 95, 90, 85, 80, 75]
@@ -16,6 +16,8 @@ params.run_chunk_size = 1000000
 params.merge_chunk_size = 500000
 params.resfinder_min_cov = 0.6
 params.resfinder_identity_threshold = 0.8
+params.hmmsearch_min_cov = 0.00
+params.hmmsearch_max_evalue = 1e-5
 
 //// PATH PARAMS
 params.marker_set = "phyeco"
@@ -227,7 +229,7 @@ workflow {
 process AnnotateGenomes {
 
     label 'mem_very_high'
-    conda "${params.conda_env_path}"
+    // conda "${params.conda_env_path}"
     publishDir "${params.db_path}/gene_annotations/${species}/${genome}", mode: "copy"
 
     input:
@@ -341,7 +343,14 @@ process ParseHMMMarkers {
     set -e
     set -x
 
-    python3 ${params.bin_path}/infer_markers.py --genome ${genome} --species ${species} --hmmsearch_file ${hmmsearch} --annotation_ffn ${ffn}
+    python3 ${params.bin_path}/infer_markers.py \
+    --genome ${genome} \
+    --species ${species} \
+    --hmmsearch_file ${hmmsearch} \
+    --annotation_ffn ${ffn} \
+    --hmmsearch_max_evalue ${params.hmmsearch_max_evalue} \
+    --hmmsearch_min_cov ${params.hmmsearch_min_cov}
+
     """
 
 }
@@ -414,7 +423,7 @@ with open(output_genes, 'w') as o_genes, \
 process CombineCleanedGenes {
     label 'single_cpu'
     conda "${params.conda_env_path}"
-    publishDir "${params.db_path}/pangenomes/${species}/", mode: "copy"
+    publishDir "${params.db_path}/pangenomes/${species}/vsearch", mode: "copy"
 
     input:
     tuple val(genome), val(species), path(gene_ffns), path(gene_lens)
@@ -649,15 +658,27 @@ process CalculateContigLength {
     output:
     tuple val(species), path("contigs.len")
 
-    script:
-    """
-    #! /usr/bin/env bash
-    set -e
-    set -x
+"""
+#!/usr/bin/env python3
+from Bio import SeqIO
 
-    python3 ${params.bin_path}/calculate_contig_length.py \
-    --fna_list ${fna_list} 
-    """
+fna_list = "${fna_list}".split(' ')
+dict_of_contig_length = {}
+
+for genome_fna in fna_list:
+    clen = {}
+    genome_id = genome_fna.replace('.fna','')
+    for rec in SeqIO.parse(genome_fna, 'fasta'):
+        clen[rec.id] = len(rec.seq)
+    dict_of_contig_length[genome_id] = clen
+
+with open("contigs.len", 'w') as f:
+        f.write("\\t".join(["genome_id", "contig_id", "contig_length"]) + "\\n")
+        for gid, r in dict_of_contig_length.items():
+            for cid, clen in r.items():
+                vals = [gid, cid, str(clen)]
+                f.write("\\t".join(vals) + "\\n")
+"""
 }
 
 
@@ -817,6 +838,7 @@ process ParsePangenomeAnnotations {
     set -e
     set -x
 
+    echo ""
     mkdir genomad_virus genomad_plasmid mefinder resfinder eggnog
 
     python3 ${params.bin_path}/parse_pangenome_annotations.py \

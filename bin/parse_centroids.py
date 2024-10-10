@@ -30,7 +30,8 @@ def xref(cluster_files):
     for g in centroid_info:
         cg = centroid_info[g][max_percent_id]
         ccg = centroid_info[cg][max_percent_id]
-        assert cg == ccg, f"The {max_percent_id}-centroid relation should be idempotent, however, {cg} != {ccg}.  See https://github.com/czbiohub/MIDAS2/issues/16"
+        assert cg == ccg, f"The {max_percent_id}-centroid relation should be idempotent, however, {cg} != {ccg}. \
+              See https://github.com/czbiohub/MIDAS2/issues/16"
 
     # At this point we have the max_percent_id centroid for any gene gc, but we lack
     # coarser clustering assignments for many genes -- we only have those for genes

@@ -1,15 +1,5 @@
 # Chunyu Zhao 2023-06-14
-# Dependency:
-# seqkit
-# awk
-
 #! /usr/bin/bash
-
-# if [ $# -ne 5 ]; then
-#     echo "Usage: $0 SPECIES SPECIEDIR THREADS MEM SCRIPTDIR"
-#     exit 1
-# fi
-
 
 species_id=$1
 genes_info=$2
@@ -25,29 +15,6 @@ base_dir=$PWD
 
 #extract '99' from centroids.99.clean.ffn
 cluster_threshold=$(echo "$centroids_clean_ffn" | grep -oP '(?<=centroids\.)\d+(?=\.clean\.ffn)')
-
-# vsearch_threads=4
-# vsearch_jobs=$((total_threads / vsearch_threads))
-# thread2=$((total_threads / 2))
-
-# pangenome_dir="$2"
-# total_threads="$3"
-# total_mem="$4" 
-# script_dir="$5"
-
-# vsearch_threads=8
-# vsearch_jobs=$((total_threads / vsearch_threads))
-# thread2=$((total_threads / 2))
-
-####### INPUTS: global scratch directory
-# species_dir="${pangenome_dir}/${species_id}"
-# vsearch_dir="${species_dir}/temp/vsearch"
-# genes_ffn="${vsearch_dir}/genes.ffn"
-# genes_len="${vsearch_dir}/genes.len"
-# genes_info="${vsearch_dir}/gene_info.txt"
-# centroids_clean_ffn="${vsearch_dir}/centroids.99.clean.ffn"
-# centroids_ambig_ffn="${vsearch_dir}/centroids.99.ambiguous.ffn"
-
 
 ####### OUTPUTS
 out_dir="$PWD/temp/cdhit"
