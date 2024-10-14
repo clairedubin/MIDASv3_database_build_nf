@@ -27,15 +27,15 @@ params.midas_dir = "/wynton/protected/home/sirota/clairedubin/bin/MIDAS"
 // conda env for most processes
 params.conda_env_path = "/wynton/protected/home/sirota/clairedubin/anaconda3/envs/MIDASv3"
 
-// eggnog has its own conda env
+// eggnog has its own conda env and db
 params.eggnog_db_dir = "/wynton/group/sirota/clairedubin/eggnog"
 params.eggnog_conda_dir = '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/eggnog'
 
-// genomad has its own conda env
+// genomad has its own conda env and db
 params.genomad_db_dir = "/wynton/protected/home/sirota/clairedubin/databases/genomad_db_v1.5/genomad_db"
 params.genomad_conda_dir =  '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/genomad'
 
-// resfinder has its own venv
+// resfinder has its own venv and db
 params.resfinder_env_dir = "/wynton/protected/home/sirota/clairedubin/envs/resfinder_env"
 params.resfinder_db_dir = "/wynton/protected/home/sirota/clairedubin/databases/resfinder_dbs"
 
@@ -44,6 +44,8 @@ params.blastn_dir = "/wynton/protected/home/sirota/clairedubin/bin/ncbi-blast-2.
 params.git_dir = "/wynton/protected/home/sirota/clairedubin/bin/git-2.39.5"
 
 params.bin_dir = workflow.launchDir + "/bin"
+
+
 
 // Ensure directories end with trailing "/" characters
 params.findAll { key, _ -> key.endsWith("_dir")}
