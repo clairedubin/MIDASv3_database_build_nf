@@ -7,6 +7,7 @@ nextflow.enable.dsl=2
 // containerize stuff
 // clean up files in bin 
 // change eggnog db loading for efficiency
+// make prokka accept either .fa or .fasta
 
 //// PARAMS
 params.centroid_cluster_percents = [99, 95, 90, 85, 80, 75]
@@ -240,7 +241,7 @@ workflow {
 
 process AnnotateGenomes {
 
-    label 'mem_very_high'
+    label 'mem_medium'
     publishDir "${params.db_path}/gene_annotations/${species}/${genome}", mode: "copy"
 
     input:
@@ -686,7 +687,7 @@ process RunEggNog {
     //also note i hard coded scratch dir below for wynton compute nodes
 
     label 'mem_very_high'
-    conda ${params.eggnog_conda_path}
+    conda "${params.eggnog_conda_path}"
     publishDir "${params.db_path}/pangenomes_annotation/02_eggnog/${species}", mode: "copy"
     
     input:
@@ -707,10 +708,9 @@ process RunEggNog {
     -m diamond --sensmode more-sensitive \
     --data_dir ${params.eggnog_db_path} \
     --output ${species} --override \
-    --dbmem --pfam_realign realign \
+    --pfam_realign realign \
     --cpu ${task.cpus} \
     --dmnd_db ${params.eggnog_dmnd_db_path}
-
 
     """
 }
@@ -719,7 +719,7 @@ process RunEggNog {
 process RunGeNomad {
     
     label 'mem_high'
-    conda ${params.genomad_conda_path}
+    conda "${params.genomad_conda_path}"
     publishDir "${params.db_path}/pangenomes_annotation/01_mge/${species}/${genome}/genomad_output", mode: "copy"
     
     input:
