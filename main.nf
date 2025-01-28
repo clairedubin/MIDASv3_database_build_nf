@@ -2,50 +2,49 @@
 
 nextflow.enable.dsl=2
 
+
+params.max_cluster_val = params.centroid_cluster_percents.max()
+
+
 // TODO:
 // add size for grouptuple for efficiency
 // containerize stuff
 // clean up files in bin 
-// change eggnog db loading for efficiency
 // make prokka accept either .fa or .fasta
 
 //// PARAMS
-params.centroid_cluster_percents = [99, 95, 90, 85, 80, 75]
-params.max_cluster_val = params.centroid_cluster_percents.max()
-params.run_chunk_size = 1000000
-params.merge_chunk_size = 500000
-params.resfinder_min_cov = 0.6
-params.resfinder_identity_threshold = 0.8
-params.hmmsearch_min_cov = 0.00
-params.hmmsearch_max_evalue = 1e-5
+// params.centroid_cluster_percents = [99, 95, 90, 85, 80, 75]
+// params.run_chunk_size = 1000000
+// params.merge_chunk_size = 500000
+// params.resfinder_min_cov = 0.6
+// params.resfinder_identity_threshold = 0.8
+// params.hmmsearch_min_cov = 0.00
+// params.hmmsearch_max_evalue = 1e-5
 
-//// PATH PARAMS
-params.marker_set = "phyeco"
-params.db_name = "localdb"
-params.db_dir = "/wynton/protected/home/sirota/clairedubin/MIDAS3_nextflow/test_db"
-params.midas_dir = "/wynton/protected/home/sirota/clairedubin/bin/MIDAS"
+// //// PATH PARAMS
+// // params.marker_set = "phyeco"
+// params.db_dir = "/wynton/protected/home/sirota/clairedubin/MIDAS3_nextflow/test_db"
 
-// conda env for most processes
-params.conda_env_path = "/wynton/protected/home/sirota/clairedubin/anaconda3/envs/MIDASv3"
+// // conda env for most processes
+// params.conda_env_path = "/wynton/protected/home/sirota/clairedubin/anaconda3/envs/MIDASv3"
 
-// eggnog has its own conda env and db
-params.eggnog_db_dir = "/wynton/group/sirota/clairedubin/eggnog"
-params.eggnog_conda_dir = '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/eggnog'
+// // eggnog has its own conda env and db
+// params.eggnog_db_dir = "/wynton/group/sirota/clairedubin/eggnog"
+// params.eggnog_conda_dir = '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/eggnog'
 
-// genomad has its own conda env and db
-params.genomad_db_dir = "/wynton/protected/home/sirota/clairedubin/databases/genomad_db_v1.5/genomad_db"
-params.genomad_conda_dir =  '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/genomad'
+// // genomad has its own conda env and db
+// params.genomad_db_dir = "/wynton/protected/home/sirota/clairedubin/databases/genomad_db_v1.5/genomad_db"
+// params.genomad_conda_dir =  '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/genomad'
 
-// resfinder has its own venv and db
-params.resfinder_env_dir = "/wynton/protected/home/sirota/clairedubin/envs/resfinder_env"
-params.resfinder_db_dir = "/wynton/protected/home/sirota/clairedubin/databases/resfinder_dbs"
+// // resfinder has its own venv and db
+// params.resfinder_env_dir = "/wynton/protected/home/sirota/clairedubin/envs/resfinder_env"
+// params.resfinder_db_dir = "/wynton/protected/home/sirota/clairedubin/databases/resfinder_dbs"
 
-// other necessary programs
-params.blastn_dir = "/wynton/protected/home/sirota/clairedubin/bin/ncbi-blast-2.14.1+/bin"
-params.git_dir = "/wynton/protected/home/sirota/clairedubin/bin/git-2.39.5"
+// // other necessary programs
+// params.blastn_dir = "/wynton/protected/home/sirota/clairedubin/bin/ncbi-blast-2.14.1+/bin"
+// params.git_dir = "/wynton/protected/home/sirota/clairedubin/bin/git-2.39.5"
 
 params.bin_dir = workflow.projectDir + "/bin"
-
 
 
 // Ensure directories end with trailing "/" characters
@@ -243,7 +242,7 @@ workflow {
 
 process AnnotateGenomes {
 
-    label 'mem_medium'
+    label 'mem_high'
     publishDir "${params.db_path}/gene_annotations/${species}/${genome}", mode: "copy"
 
     input:
@@ -263,15 +262,16 @@ process AnnotateGenomes {
     set -x
 
     prokka \
-    --kingdom Bacteria \
-    --metagenome \
-    --cpus ${task.cpus} \
-    --prefix ${genome} \
-    --locustag ${genome} \
-    --outdir . \
-    --compliant \
-    --force \
-    "${params.db_path}/cleaned_imports/${species}/${genome}/${genome}.fasta"
+        --kingdom Bacteria \
+        --metagenome \
+        --cpus ${task.cpus} \
+        --prefix ${genome} \
+        --locustag ${genome} \
+        --outdir . \
+        --compliant \
+        --force \
+        "${params.db_path}/cleaned_imports/${species}/${genome}/${genome}.fasta"
+
 
     """
 }
@@ -705,7 +705,7 @@ process RunEggNog {
     set -e
     set -x
 
-    time emapper.py \
+    emapper.py \
     -i ${centroid_ffn} --itype CDS \
     -m diamond --sensmode more-sensitive \
     --data_dir ${params.eggnog_db_path} \
