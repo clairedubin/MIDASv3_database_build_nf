@@ -3,49 +3,15 @@
 nextflow.enable.dsl=2
 
 
-params.max_cluster_val = params.centroid_cluster_percents.max()
-
-
 // TODO:
 // add size for grouptuple for efficiency
 // containerize stuff
 // clean up files in bin 
 // make prokka accept either .fa or .fasta
+// make resfinder installed with conda
 
-//// PARAMS
-// params.centroid_cluster_percents = [99, 95, 90, 85, 80, 75]
-// params.run_chunk_size = 1000000
-// params.merge_chunk_size = 500000
-// params.resfinder_min_cov = 0.6
-// params.resfinder_identity_threshold = 0.8
-// params.hmmsearch_min_cov = 0.00
-// params.hmmsearch_max_evalue = 1e-5
-
-// //// PATH PARAMS
-// // params.marker_set = "phyeco"
-// params.db_dir = "/wynton/protected/home/sirota/clairedubin/MIDAS3_nextflow/test_db"
-
-// // conda env for most processes
-// params.conda_env_path = "/wynton/protected/home/sirota/clairedubin/anaconda3/envs/MIDASv3"
-
-// // eggnog has its own conda env and db
-// params.eggnog_db_dir = "/wynton/group/sirota/clairedubin/eggnog"
-// params.eggnog_conda_dir = '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/eggnog'
-
-// // genomad has its own conda env and db
-// params.genomad_db_dir = "/wynton/protected/home/sirota/clairedubin/databases/genomad_db_v1.5/genomad_db"
-// params.genomad_conda_dir =  '/wynton/protected/home/sirota/clairedubin/anaconda3/envs/genomad'
-
-// // resfinder has its own venv and db
-// params.resfinder_env_dir = "/wynton/protected/home/sirota/clairedubin/envs/resfinder_env"
-// params.resfinder_db_dir = "/wynton/protected/home/sirota/clairedubin/databases/resfinder_dbs"
-
-// // other necessary programs
-// params.blastn_dir = "/wynton/protected/home/sirota/clairedubin/bin/ncbi-blast-2.14.1+/bin"
-// params.git_dir = "/wynton/protected/home/sirota/clairedubin/bin/git-2.39.5"
-
+params.max_cluster_val = params.centroid_cluster_percents.max()
 params.bin_dir = workflow.projectDir + "/bin"
-
 
 // Ensure directories end with trailing "/" characters
 params.findAll { key, _ -> key.endsWith("_dir")}
@@ -78,12 +44,9 @@ include { check_input } from './modules/check_input' params(
 )
 include { ClusterCentroids as ClusterCentroids } from './modules/cluster_centroids' params(
     db_path: params.db_path,
-    conda_env_path: params.conda_env_path
 )
 include { ClusterCentroids as ClusterCentroidsLowerThresholds } from './modules/cluster_centroids' params(
     db_path: params.db_path,
-    conda_env_path: params.conda_env_path
-
 )
 
 workflow {
