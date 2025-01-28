@@ -2,9 +2,7 @@
 
 nextflow.enable.dsl=2
 
-
 // TODO:
-// add size for grouptuple for efficiency
 // containerize stuff
 // clean up files in bin 
 // make prokka accept either .fa or .fasta
@@ -370,8 +368,6 @@ process CleanGenes {
 #!/usr/bin/env python3
 
 import Bio.SeqIO
-import sys
-sys.path.append("${params.bin_path}")
 from common import has_ambiguous_bases
 
 genome_id = "${genome}"
@@ -433,8 +429,6 @@ process CleanCentroids {
 
 import Bio.SeqIO
 import os
-import sys
-sys.path.append("${params.bin_path}")
 from common import has_ambiguous_bases
 
 ffn_in = "${centroid_ffn}"
