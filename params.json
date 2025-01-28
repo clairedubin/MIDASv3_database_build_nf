@@ -1,0 +1,29 @@
+{
+    "centroid_cluster_percents": [99, 95, 90, 85, 80, 75],
+    "run_chunk_size": 1000000,
+    "merge_chunk_size": 500000,
+    "resfinder_min_cov": 0.6,
+    "resfinder_identity_threshold": 0.8,
+    "hmmsearch_min_cov": 0.0,
+    "hmmsearch_max_evalue": 1e-5,
+    "marker_set": "phyeco",
+    
+    "db_name": "localdb",
+    
+    "db_dir": "/wynton/protected/home/sirota/clairedubin/MIDAS3_nextflow/test_db",
+    "conda_env_path": "/wynton/protected/home/sirota/clairedubin/anaconda3/envs/MIDASv3",
+
+    "eggnog_db_dir": "/wynton/group/sirota/clairedubin/eggnog",
+    "eggnog_conda_dir": "/wynton/protected/home/sirota/clairedubin/anaconda3/envs/eggnog",
+
+    "genomad_db_dir": "/wynton/protected/home/sirota/clairedubin/databases/genomad_db_v1.5/genomad_db",
+    "genomad_conda_dir": "/wynton/protected/home/sirota/clairedubin/anaconda3/envs/genomad",
+
+    "resfinder_env_dir": "/wynton/protected/home/sirota/clairedubin/envs/resfinder_env",
+    "resfinder_db_dir": "/wynton/protected/home/sirota/clairedubin/databases/resfinder_dbs",
+
+    "blastn_dir": "/wynton/protected/home/sirota/clairedubin/bin/ncbi-blast-2.14.1+/bin",
+    "git_dir": "/wynton/protected/home/sirota/clairedubin/bin/git-2.39.5"
+
+  }
+  
