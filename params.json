@@ -8,6 +8,8 @@
     "hmmsearch_max_evalue": 1e-5,
     "marker_set": "phyeco",
 
+    "midas_dir":"/wynton/protected/home/sirota/clairedubin/bin/MIDAS",
+
     "db_name": "localdb",
     "db_dir": "/wynton/protected/home/sirota/clairedubin/MIDAS3_nextflow/test_db",
 
