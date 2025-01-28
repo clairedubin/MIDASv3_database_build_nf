@@ -3,7 +3,9 @@ import sys
 import os
 from collections import defaultdict
 import re
-from midas.common.utils import select_from_tsv
+
+# print(sys.path)
+from common import select_from_tsv
 
 ### USAGE: python3 parse_centroids.py {any number of uclust file names}
 # eg: python3 parse_centroids.py uclust.99.txt uclust.75.txt uclust.95.txt

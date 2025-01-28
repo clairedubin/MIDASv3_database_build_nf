@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 import argparse
 from Bio import SeqIO
-# from midas.common.utilities import scan_genes
-# from midas.params.inputs import hmmsearch_max_evalue, hmmsearch_min_cov
 
-###EXAMPLE USAGE
+## EXAMPLE USAGE
 
-#python3 bin/infer_markers.py --genome GCA_007120565.1 --species 117088 --hmmsearch_file GCA_007120565.1.hmmsearch --annotation_ffn GCA_007120565.1.ffn
+# python3 bin/infer_markers.py \
+# --genome GCA_007120565.1 \
+# --species 117088 \
+# --hmmsearch_file GCA_007120565.1.hmmsearch \
+# --annotation_ffn GCA_007120565.1.ffn
 
 def scan_genes(annotated_genes):
     """" Lookup of seq_id to sequence for PATRIC genes """

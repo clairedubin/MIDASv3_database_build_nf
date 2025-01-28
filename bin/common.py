@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 
 def has_ambiguous_bases(sequence):
     # Check if sequence contains lower-case letters, which usually indicate soft-masked bases
