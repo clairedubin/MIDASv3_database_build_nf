@@ -9,6 +9,7 @@ nextflow.enable.dsl=2
 // clean up files in bin 
 // make prokka accept either .fa or .fasta
 // make resfinder installed with conda
+// add help message
 
 params.max_cluster_val = params.centroid_cluster_percents.max()
 params.bin_dir = workflow.projectDir + "/bin"
@@ -59,7 +60,7 @@ workflow {
         .splitCsv(header: true, sep: '\t')
         .map { row -> tuple(row.genome, row.species, row.representative, row.genome_is_representative) } 
 
-    // Filter to only representative genomes for certain steps of pipeline
+    // Filter to only representative genomes (for certain steps of pipeline)
     genomes.filter { r -> (r[3] == "1") }
         .map{ r -> tuple(r[0], r[1]) } // tuple of (genome, species)
         .set{ rep_genomes }
@@ -113,7 +114,7 @@ workflow {
         max_cluster_output.cluster_pct
     )
 
-    // Clustering C99 output at lower thresholds
+    // Clustering highest cluster threshold output at lower thresholds
     remaining_clusters_list = params.centroid_cluster_percents.findAll {it != params.max_cluster_val}
         
     Channel
@@ -235,7 +236,6 @@ process AnnotateGenomes {
         --force \
         "${params.db_path}/cleaned_imports/${species}/${genome}/${genome}.fasta"
 
-
     """
 }
 
@@ -317,7 +317,7 @@ process ParseHMMMarkers {
     set -e
     set -x
 
-    python3 ${params.bin_path}/infer_markers.py \
+    infer_markers.py \
     --genome ${genome} \
     --species ${species} \
     --hmmsearch_file ${hmmsearch} \
@@ -423,7 +423,6 @@ process CleanCentroids {
     tuple val(species), path(centroid_ffn)
     val(cluster_pct)
 
-
     output:
     tuple val(species), \
     path("centroids.${cluster_pct}.clean.ffn"), \
@@ -473,7 +472,7 @@ process ParseCentroidInfo {
     set -e
     set -x
 
-    python3 ${params.bin_path}/parse_centroids.py ${uclust_files}
+    parse_centroids.py ${uclust_files}
     
     """
 }
@@ -501,7 +500,7 @@ process RefineClusters {
     set -e
     set -x
     
-    bash ${params.bin_path}/pipeline.sh \
+    pipeline.sh \
         ${species} \
         ${gene_info} \
         ${clean_centroids} \
@@ -561,13 +560,7 @@ process ParseReclusteredCentroidInfo {
     set -e
     set -x
 
-    echo ""
-    echo ""
-    echo ""
-    echo ""
-
-
-    python3 ${params.bin_path}/parse_reclustered_centroids.py \
+    parse_reclustered_centroids.py \
     --gene_info_file ${genes_info} \
     --max_percent ${params.max_cluster_val} \
     --gene_length_file ${genes_len} \
@@ -604,7 +597,7 @@ process AugmentPangenomes {
 
     cluster_pct_list=\$(echo ${params.centroid_cluster_percents} | tr -d '[],')
 
-    python3 ${params.bin_path}/augment_pangenome.py \
+    augment_pangenome.py \
     --gene_info_file ${gene_info_tsv} \
     --cluster_thresholds \${cluster_pct_list} \
     --rep_genome ${rep_genome}
@@ -803,7 +796,7 @@ process ParsePangenomeAnnotations {
     echo ""
     mkdir genomad_virus genomad_plasmid mefinder resfinder eggnog
 
-    python3 ${params.bin_path}/parse_pangenome_annotations.py \
+    parse_pangenome_annotations.py \
     --species ${species} \
     --genome ${genome} \
     --genes_file ${genes_file} \
@@ -920,7 +913,7 @@ process EnhancePangenome {
 
     cluster_pct_list=\$(echo ${params.centroid_cluster_percents} | tr -d '[],')
 
-    python3 ${params.bin_path}/enhance_pangenome.py \
+    enhance_pangenome.py \
     --cluster_thresholds \${cluster_pct_list}  \
     --genomad_virus_file ${genomad_virus} \
     --genomad_plasmid_file ${genomad_plasmid} \
