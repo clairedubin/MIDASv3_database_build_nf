@@ -5,12 +5,9 @@ nextflow.enable.dsl=2
 // TODO:
 // containerize stuff
 // clean up files in bin 
-// make prokka accept either .fa or .fasta
-// make resfinder installed with conda
 // add help message
 
 params.max_cluster_val = params.centroid_cluster_percents.max()
-params.bin_dir = workflow.projectDir + "/bin"
 
 // Ensure directories end with trailing "/" characters
 params.findAll { key, _ -> key.endsWith("_dir")}
@@ -23,29 +20,38 @@ params.findAll { key, _ -> key.endsWith("_dir")}
 }
 
 // Subfiles within above directories
-params.marker_path = params.db_path + "markers_models/" + params.marker_set + '/'
-params.marker_model_hmm_path = params.marker_path + "marker_genes.hmm"
-params.genomes_tsv_path = params.db_path + "genomes.tsv"
+params.db_path = "${params.db_output_dir}/${params.db_name}/"
+params.marker_model_hmm_path = "${baseDir}" + "/markers_models/" + params.marker_set + "/marker_genes.hmm"
 params.git_executable_path = params.git_path + "git"
-params.eggnog_dmnd_db_path = params.eggnog_db_path + "eggnog_prokaryote_only.dmnd"
+params.eggnog_dmnd_db_path = params.eggnog_db_path + params.eggnog_dmnd_db_name
 
 // Check that all paths exist
-params.findAll { key, _ -> key.endsWith("_path")}
+params.findAll { key, _ -> key.endsWith("_path") }
     .each { key, path ->
-    def file = new File(path.toString())
-    if (!file.exists()) {
-        throw new IllegalStateException("Error: ${key} does not exist at ${path}")
-    } 
-}
+        def file = new File(path.toString())
+        if (key == "db_path") {
+            // If db_path does not exist, create it
+            if (!file.exists()) {
+                println "Creating directory at ${path}."
+                if (!file.mkdirs()) {
+                    throw new IllegalStateException("Error: Failed to create ${key} at ${path}")
+                }
+            }
+        } else {
+            // For all other paths, check that they exist
+            if (!file.exists()) {
+                throw new IllegalStateException("Error: ${key} does not exist at ${path}")
+            }
+        }
+    }
 
-include { check_input } from './modules/check_input' params(
+include { check_input } from './modules/check_input' 
+
+include { ClusterCentroids as ClusterCentroids } from './modules/cluster_centroids' params(
     db_path: params.db_path
 )
-include { ClusterCentroids as ClusterCentroids } from './modules/cluster_centroids' params(
-    db_path: params.db_path,
-)
 include { ClusterCentroids as ClusterCentroidsLowerThresholds } from './modules/cluster_centroids' params(
-    db_path: params.db_path,
+    db_path: params.db_path
 )
 
 workflow {
@@ -56,7 +62,7 @@ workflow {
     genomes = Channel
         .fromPath(params.genomes_tsv_path)
         .splitCsv(header: true, sep: '\t')
-        .map { row -> tuple(row.genome, row.species, row.representative, row.genome_is_representative) } 
+        .map { row -> tuple(row.genome, row.species, row.representative, row.genome_is_representative, row.fasta_path) } 
 
     // Filter to only representative genomes (for certain steps of pipeline)
     genomes.filter { r -> (r[3] == "1") }
@@ -112,7 +118,7 @@ workflow {
         max_cluster_output.cluster_pct
     )
 
-    // Clustering highest cluster threshold output at lower thresholds
+    // Clustering highest cluster threshold output (e.g. C99) at lower thresholds
     remaining_clusters_list = params.centroid_cluster_percents.findAll {it != params.max_cluster_val}
         
     Channel
@@ -208,7 +214,7 @@ process AnnotateGenomes {
     publishDir "${params.db_path}/gene_annotations/${species}/${genome}", mode: "copy"
 
     input:
-    tuple val(genome), val(species), val(representative), val(genome_is_representative)
+    tuple val(genome), val(species), val(representative), val(genome_is_representative), val(genome_path)
 
     output:
     tuple val(genome), val(species), path("${genome}.gff"), emit: gff_tuple
@@ -232,7 +238,7 @@ process AnnotateGenomes {
         --outdir . \
         --compliant \
         --force \
-        "${params.db_path}/cleaned_imports/${species}/${genome}/${genome}.fasta"
+        ${genome_path}
 
     """
 }
@@ -259,7 +265,7 @@ to_write = "\\t".join(["gene_id", "contig_id", "start", "end", "strand", "gene_t
 for feature in db.all_features():
     if feature.source == "prokka":
         continue
-    if "ID" not in feature.attributes: #CRISPR
+    if "ID" not in feature.attributes: 
         continue
     seqid = feature.seqid
     start = feature.start
@@ -289,9 +295,6 @@ process HMMMarkerSearch {
 
     script:
     """
-    #! /usr/bin/env bash
-    set -e
-    set -x
     
     hmmsearch --noali --cpu ${task.cpus} --domtblout "${genome}.hmmsearch" ${params.marker_model_hmm_path} ${faa}
 
@@ -311,9 +314,6 @@ process ParseHMMMarkers {
     script:
 
     """
-    #! /usr/bin/env bash
-    set -e
-    set -x
 
     infer_markers.py \
     --genome ${genome} \
@@ -336,7 +336,7 @@ process BuildMarkerDB {
     path '*.markers.map'
 
     output:
-    path("phyeco.*")
+    path("${params.marker_set}.*")
 
     script:
 
@@ -345,10 +345,10 @@ process BuildMarkerDB {
     set -e
     set -x
 
-    cat *.markers.fa > phyeco.fa
-    cat *.markers.map > phyeco.map
+    cat *.markers.fa > ${params.marker_set}.fa
+    cat *.markers.map > ${params.marker_set}.map
 
-    hs-blastn index phyeco.fa
+    hs-blastn index ${params.marker_set}.fa
     """
 }
 
@@ -462,9 +462,6 @@ process ParseCentroidInfo {
 
     script:
     """
-    #! /usr/bin/env bash
-    set -e
-    set -x
 
     parse_centroids.py ${uclust_files}
     
@@ -502,11 +499,9 @@ process RefineClusters {
         ${genes_ffn} \
         ${genes_len} \
         ${task.cpus} \
-        ${task.memory.toMega()} \
-        "${params.midas_path}bin" 
+        ${task.memory.toMega()} 
 
     cp "temp/cdhit/centroids.${params.max_cluster_val}.ffn" centroids.ffn
-
 
     """
 }
@@ -554,16 +549,16 @@ process ParseReclusteredCentroidInfo {
     set -e
     set -x
 
+    mkdir temp
+    cat *.markers.map >> temp/mapfile
+
     parse_reclustered_centroids.py \
     --gene_info_file ${genes_info} \
     --max_percent ${params.max_cluster_val} \
     --gene_length_file ${genes_len} \
-    --uclust_files ${uclust_files} \
-    --genome_marker_files ${marker_map_files}
+    --uclust_files ${uclust_files} 
 
-    mkdir temp
     cp genes_info.tsv temp/genes_info.tsv
-    mv mapfile temp
     cp temp/mapfile temp/markers.map
 
     """
@@ -634,10 +629,6 @@ with open("contigs.len", 'w') as f:
 
 process RunEggNog {
 
-    ///this takes a lot of time, mostly loading the annotation db into memory
-    ///should explore other ways to just load db once or twice
-    //also note i hard coded scratch dir below for wynton compute nodes
-
     label 'mem_very_high'
     conda "${params.eggnog_conda_path}"
     publishDir "${params.db_path}/pangenomes_annotation/02_eggnog/${species}", mode: "copy"
@@ -651,9 +642,6 @@ process RunEggNog {
 
     script:
     """
-    #! /usr/bin/env bash
-    set -e
-    set -x
 
     emapper.py \
     -i ${centroid_ffn} --itype CDS \
@@ -685,15 +673,11 @@ process RunGeNomad {
 
     script:
     """
-    #! /usr/bin/env bash
-    set -e
-    
     genomad end-to-end \
     --threads ${task.cpus} \
     --cleanup  \
     --enable-score-calibration \
     ${fna} '.' ${params.genomad_db_path} 
-
     """
 }
 
@@ -713,6 +697,7 @@ process RunMEFinder {
     """
     #! /usr/bin/env bash
     set -e
+
     export PATH=\$PATH:${params.blastn_path}
     source ${params.resfinder_env_path}/bin/activate
     
@@ -787,7 +772,6 @@ process ParsePangenomeAnnotations {
     set -e
     set -x
 
-    echo ""
     mkdir genomad_virus genomad_plasmid mefinder resfinder eggnog
 
     parse_pangenome_annotations.py \
@@ -934,13 +918,12 @@ process ComputeRunSNPsChunks {
 #!/usr/bin/env python3
 
 import json
-from midas.models.species import design_run_snps_chunks, design_merge_snps_chunks
-from midas.common.utils import OutputStream
+from chunk_tools import design_run_snps_chunks
 
 run_snp_chunks_to_cache = design_run_snps_chunks('${species}', '${fna}', ${params.run_chunk_size})
 
-with OutputStream('${genome}.json') as stream:
-        json.dump(run_snp_chunks_to_cache, stream)
+with open('${genome}.json', 'w') as stream:
+    json.dump(run_snp_chunks_to_cache, stream)
 
 """
 }
@@ -959,13 +942,12 @@ process ComputeMergeSNPsChunks {
 #!/usr/bin/env python3
 
 import json
-from midas.models.species import design_merge_snps_chunks
-from midas.common.utils import OutputStream
+from chunk_tools import design_merge_snps_chunks
 
 merge_snp_chunks_to_cache = design_merge_snps_chunks('${species}', '${fna}', ${params.merge_chunk_size})
 
-with OutputStream('${genome}.json') as stream:
-        json.dump(merge_snp_chunks_to_cache, stream)
+with open('${genome}.json', 'w') as stream:
+    json.dump(merge_snp_chunks_to_cache, stream)
 
 """
 }
