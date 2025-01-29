@@ -3,11 +3,11 @@ def check_input(genomes_tsv_path) {
     new File(genomes_tsv_path).withReader { reader ->
         def header = reader.readLine()
         def columns = header.split("\t")
-        def expectedColumns = ["genome", "species", "representative", "genome_is_representative"]
+        def expectedColumns = ["genome", "species", "representative", "genome_is_representative", "fasta_path"]
 
         // Check that columns are expected
         if (columns.size() != expectedColumns.size()) {
-            throw new IllegalStateException("Error: File at ${params.genomes_tsv_path} \
+            throw new IllegalStateException("Error: File at ${genomes_tsv_path} \
             does not have exactly ${expectedColumns.size()} columns")
         }
         if (!columns.equals(expectedColumns)) {
@@ -27,6 +27,7 @@ def check_input(genomes_tsv_path) {
             def genome = fields[0]
             def species = fields[1]
             def genomeIsRepresentative = fields[3] as Integer
+            def fastaPath = new File(fields[4])
 
             // Check that all genome names are unique
             if (!genomeSet.add(genome)) {
@@ -45,7 +46,6 @@ def check_input(genomes_tsv_path) {
             }
 
             // Check that genome fasta file exists and is not empty
-            def fastaPath = new File("${params.db_path}/cleaned_imports/${species}/${genome}/${genome}.fasta")
             if (!fastaPath.exists()) {
                 throw new IllegalArgumentException("File not found for genome: ${genome} at ${fastaPath}")
             }        
