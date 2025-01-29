@@ -8,11 +8,11 @@
     "hmmsearch_max_evalue": 1e-5,
     "marker_set": "phyeco",
 
-    "db_name": "localdb",
+    "db_name": "nextflow_db",
     "db_output_dir": ".",
 
     "eggnog_db_dir": "/wynton/group/sirota/clairedubin/eggnog",
-    "eggnog_dmnd_db_name": "eggnog_prokaryote_only.dmnd",
+    "eggnog_dmnd_db_name": "eggnog_proteins.dmnd",
     "eggnog_conda_dir": "/wynton/protected/home/sirota/clairedubin/anaconda3/envs/eggnog",
 
     "genomad_db_dir": "/wynton/protected/home/sirota/clairedubin/databases/genomad_db_v1.5/genomad_db",
