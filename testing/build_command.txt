@@ -1,0 +1,3 @@
+cd ~/MIDAS3_nextflow #location of nextflow pipeline
+module load openjdk
+nextflow run main.nf -params-file params.json --genomes_tsv_path testing/inputs/genomes_with_paths.tsv --db_output_dir testing -w testing/work
