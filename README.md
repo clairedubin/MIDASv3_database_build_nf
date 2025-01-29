@@ -1,4 +1,4 @@
 Usage: 
 ```
- nextflow -bg run main.nf -c config -with-conda -resume
+ nextflow run main.nf -params-file params.json --genomes_tsv_path genomes.tsv
 ```
