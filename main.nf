@@ -21,7 +21,7 @@ params.findAll { key, _ -> key.endsWith("_dir")}
 
 // Subfiles within above directories
 params.db_path = "${params.db_output_dir}/${params.db_name}/"
-params.marker_model_hmm_path = "${baseDir}" + "/markers_models/" + params.marker_set + "/marker_genes.hmm"
+params.marker_model_hmm_path = "${baseDir}" + "/bin/markers_models/" + params.marker_set + "/marker_genes.hmm"
 params.git_executable_path = params.git_path + "git"
 params.eggnog_dmnd_db_path = params.eggnog_db_path + params.eggnog_dmnd_db_name
 
@@ -390,7 +390,7 @@ with open(output_genes, 'w') as o_genes, \
 
 process CombineCleanedGenes {
     label 'single_cpu'
-    publishDir "${params.db_path}/pangenomes/${species}/vsearch", mode: "copy"
+    publishDir "${params.db_path}/pangenomes/${species}", mode: "copy"
 
     input:
     tuple val(genome), val(species), path(gene_ffns), path(gene_lens)
@@ -398,6 +398,7 @@ process CombineCleanedGenes {
     output:
     tuple val(species), path("genes.ffn"), emit: genes_ffn
     tuple val(species), path("genes.len"), emit: genes_len
+    tuple val(species), path("temp/vsearch/genes.len")
 
     script:
     """
@@ -407,6 +408,9 @@ process CombineCleanedGenes {
 
     cat ${gene_ffns} > genes.ffn
     cat ${gene_lens} > genes.len
+
+    mkdir -p temp/vsearch
+    cp genes.len temp/vsearch/genes.len
     
     """
 }
