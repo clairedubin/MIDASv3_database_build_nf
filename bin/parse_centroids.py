@@ -3,8 +3,6 @@ import sys
 import os
 from collections import defaultdict
 import re
-
-# print(sys.path)
 from common import select_from_tsv
 
 ### USAGE: python3 parse_centroids.py {any number of uclust file names}

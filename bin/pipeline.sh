@@ -10,7 +10,7 @@ genes_ffn=$5
 genes_len=$6
 total_threads=$7
 total_mem=$8
-script_dir=$9
+# script_dir=$9
 
 # Directories and Variables
 base_dir=$PWD
@@ -38,7 +38,8 @@ if [[ -s "$centroids_ambig_ffn" ]]; then
     grep ">" "$centroids_ambig_ffn" | awk '{sub(/>/, ""); print}' > "$ambiguous_list"
 
     cat "$ambiguous_list" | \
-      xargs -Ixx -P "$total_threads" bash -c "bash $script_dir/get_members.sh xx $genes_ffn $genes_info $members_dir/xx.mems.ffn"
+      # xargs -Ixx -P "$total_threads" bash -c "bash $script_dir/get_members.sh xx $genes_ffn $genes_info $members_dir/xx.mems.ffn"
+      xargs -Ixx -P "$total_threads" bash -c "bash get_members.sh xx $genes_ffn $genes_info $members_dir/xx.mems.ffn"
 
     multimember_centroids="${members_dir}/centroids_with_multimembers"
     find "$members_dir" -name '*mems.ffn' -size +0c | awk '{sub(/\.mems\.ffn/, ""); print $NF}' > "$multimember_centroids"
@@ -47,7 +48,8 @@ if [[ -s "$centroids_ambig_ffn" ]]; then
       xargs -Ixx -P "$total_threads" bash -c "vsearch --cluster_fast $members_dir/xx.mems.ffn --threads 1 --quiet --id 0.99 --centroids $vsearch_dir/xx.centroids -uc $vsearch_dir/xx.clusters"
 
     cat "$multimember_centroids" | \
-      xargs -Ixx -P "$total_threads" bash -c "bash $script_dir/gather_geneinfo.sh $vsearch_dir/xx.clusters $vsearch_dir/xx.geneinfo"
+      # xargs -Ixx -P "$total_threads" bash -c "bash $script_dir/gather_geneinfo.sh $vsearch_dir/xx.clusters $vsearch_dir/xx.geneinfo"
+      xargs -Ixx -P "$total_threads" bash -c "bash gather_geneinfo.sh $vsearch_dir/xx.clusters $vsearch_dir/xx.geneinfo"
 
     gene_info_add="${info_dir}/vsearch_gene_info_add.tsv"
     cat "$vsearch_dir"/*.geneinfo | tr ' ' '\t' > "$gene_info_add"
@@ -78,7 +80,9 @@ if [[ ! -e "$cdhit_centroids_tsv" ]]; then
   cd-hit-est -i vsearch_centroids_renamed.ffn -c 1 -T "$total_threads" -aS 0.9 -G 0 -g 1 -AS 180 -M "$total_mem" -o cdhit_centroids.ffn
 
   awk '{ if ($0 ~ /^>/) {print $0} else {print toupper($0)}}' cdhit_centroids.ffn > cdhit_centroids_upper.ffn
-  bash "$script_dir/parse_cdhit_cluster.sh" cdhit_centroids.ffn.clstr cdhit_centroids.ffn.clstr.tsv
+  # bash "$script_dir/parse_cdhit_cluster.sh" cdhit_centroids.ffn.clstr cdhit_centroids.ffn.clstr.tsv
+  bash parse_cdhit_cluster.sh cdhit_centroids.ffn.clstr cdhit_centroids.ffn.clstr.tsv
+
 
   awk -v OFS='\t' '$2 == 0 {print $1, $4, $4}' cdhit_centroids.ffn.clstr.tsv > new_centroids.tsv
   awk -v OFS='\t' '$2 != 0 {print $1, $4}' cdhit_centroids.ffn.clstr.tsv > new_members.tsv
