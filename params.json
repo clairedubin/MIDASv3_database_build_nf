@@ -11,7 +11,7 @@
     "db_name": "nextflow_db",
     "db_output_dir": ".",
 
-    "eggnog_db_dir": "/wynton/group/sirota/clairedubin/eggnog",
+    "eggnog_db_dir": "/wynton/group/sirota/clairedubin/databases/eggnog",
     "eggnog_dmnd_db_name": "eggnog_proteins.dmnd",
     "eggnog_conda_dir": "/wynton/protected/home/sirota/clairedubin/anaconda3/envs/eggnog",
 
