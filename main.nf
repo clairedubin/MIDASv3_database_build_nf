@@ -72,15 +72,8 @@ workflow {
     //// ANNOTATION ////
 
     AnnotateGenomes(genomes)
-    
-    // GenerateGeneFeatures(AnnotateGenomes.out.gff_tuple)
-
-    // CleanGenes(AnnotateGenomes.out.ffn_tuple)
-
     CombineCleanedGenes(AnnotateGenomes.out.cleaned_genes.groupTuple(by: 1))
-
     RunGeNomad(AnnotateGenomes.out.fna_tuple)
-    // RunMEFinder(AnnotateGenomes.out.fna_tuple)
     RunResFinder(AnnotateGenomes.out.fna_tuple)
 
     CalculateContigLength(
@@ -92,8 +85,6 @@ workflow {
     //// BUILD MARKER DB ////
 
     HMMMarkerSearch(AnnotateGenomes.out.faa_ffn_tuple)
-
-    // ParseHMMMarkers(HMMMarkerSearch.out)
 
     rep_genomes
         .join(HMMMarkerSearch.out.markers, by: [0,1])
@@ -176,7 +167,6 @@ workflow {
     //// COMBINE ANNOTATION RESULTS ////
 
     AnnotateGenomes.out.genes
-        // .combine(RunMEFinder.out.mefinder_output, by: [0,1])
         .combine(RunResFinder.out.resfinder_output, by: [0,1])
         .combine(RunGeNomad.out.genomad_gene_files, by: [0,1])
         .map{it.swap(1,0)} // swap genome and species columns to match order of the following inputs
@@ -204,7 +194,6 @@ workflow {
         .set{rep_genome_fna_tuples}
 
     ComputeChunks(rep_genome_fna_tuples)
-    // ComputeMergeSNPsChunks(rep_genome_fna_tuples)
     
 }
 
@@ -217,8 +206,6 @@ process AnnotateGenomes {
     tuple val(genome), val(species), val(representative), val(genome_is_representative), val(genome_path)
 
     output:
-    // tuple val(genome), val(species), path("${genome}.gff"), emit: gff_tuple
-    // tuple val(genome), val(species), path("${genome}.ffn"), emit: ffn_tuple
     tuple val(genome), val(species), path("${genome}.fna"), emit: fna_tuple
     tuple val(genome), val(species), path("${genome}.faa"), path("${genome}.ffn"), emit: faa_ffn_tuple
     tuple val(genome), val(species), path("${genome}.genes"), emit: genes
@@ -249,24 +236,6 @@ process AnnotateGenomes {
     """
 }
 
-// process GenerateGeneFeatures {
-//     label 'single_cpu'
-//     publishDir "${params.db_path}/gene_annotations/${species}/${genome}", mode: "copy"
-
-//     input:
-//     tuple val(genome), val(species), path(gff)
-
-//     output:
-//     tuple val(genome), val(species), path("${genome}.genes"), emit: genes
-//     path("${gff}.db")
-    
-
-// """
-
-
-// """
-//  }
-
 process HMMMarkerSearch {
     label 'mem_medium'
     publishDir "${params.db_path}/markers/${params.marker_set}/temp/${species}/${genome}", mode: "copy"
@@ -295,32 +264,6 @@ process HMMMarkerSearch {
     """
 }
 
-// process ParseHMMMarkers {
-//     label 'single_cpu'
-//     publishDir "${params.db_path}/markers/${params.marker_set}/temp/${species}/${genome}", mode: "copy"
-
-//     input:
-//     tuple val(genome), val(species), path(hmmsearch), path(ffn)
-
-//     output:
-//     tuple val(genome), val(species), path("${genome}.markers.fa"), path("${genome}.markers.map") 
-
-//     script:
-
-//     """
-
-//     infer_markers.py \
-//     --genome ${genome} \
-//     --species ${species} \
-//     --hmmsearch_file ${hmmsearch} \
-//     --annotation_ffn ${ffn} \
-//     --hmmsearch_max_evalue ${params.hmmsearch_max_evalue} \
-//     --hmmsearch_min_cov ${params.hmmsearch_min_cov}
-
-//     """
-
-// }
-
 process BuildMarkerDB {
     label 'single_cpu'
     publishDir "${params.db_path}/markers/${params.marker_set}", mode: "copy"
@@ -345,42 +288,6 @@ process BuildMarkerDB {
     hs-blastn index ${params.marker_set}.fa
     """
 }
-
-// process CleanGenes {
-
-//     label 'single_cpu'
-//     publishDir "${params.db_path}/gene_annotations/${species}/${genome}", mode: "copy"
-
-//     input:
-//     tuple val(genome), val(species), path(ffn)
-
-//     output:
-//     tuple val(genome), val(species), path("${genome}.genes.ffn"), path("${genome}.genes.len")
-
-
-// """
-// #!/usr/bin/env python3
-
-// import Bio.SeqIO
-// from common import has_ambiguous_bases
-
-// genome_id = "${genome}"
-// output_genes = "${genome}.genes.ffn"
-// output_len = "${genome}.genes.len"
-// with open(output_genes, 'w') as o_genes, \
-//         open(output_len, 'w') as o_info:        
-    
-//     for rec in Bio.SeqIO.parse("${ffn}", 'fasta'):
-//         gene_id = rec.id
-//         gene_seq = str(rec.seq).upper()
-//         gene_len = len(gene_seq)
-//         if gene_len <= 200 or has_ambiguous_bases(gene_seq) or gene_id == '' or gene_id == '|':
-//             pass
-//         else:
-//             o_genes.write(f">{gene_id}\\n{gene_seq}\\n")
-//             o_info.write(f"{gene_id}\\t{genome_id}\\t{gene_len}\\n")
-// """
-// }
 
 process CombineCleanedGenes {
     label 'single_cpu'
@@ -679,31 +586,6 @@ process RunGeNomad {
     """
 }
 
-// process RunMEFinder {
-    
-//     label 'mem_medium'
-//     publishDir "${params.db_path}/pangenomes_annotation/01_mge/${species}/${genome}/mefinder_output", mode: "copy"
-    
-//     input:
-//     tuple val(genome), val(species), path(fna)
-
-//     output:
-//     tuple val(genome), val(species), path("mefinder.csv"), emit: mefinder_output
-//     path('*')
-
-//     script:
-//     """
-//     #! /usr/bin/env bash
-//     set -e
-
-//     export PATH=\$PATH:${params.blastn_path}
-//     source ${params.resfinder_env_path}/bin/activate
-    
-//     mefinder find --contig ${fna} -t ${task.cpus} mefinder
-
-//     """
-// }
-
 process RunResFinder {
     
     label 'mem_medium'
@@ -746,8 +628,6 @@ process RunResFinder {
     mefinder find --contig ../${fna} -t ${task.cpus} mefinder
     """
 }
-
-
 
 process ParsePangenomeAnnotations {
 
@@ -915,7 +795,6 @@ process EnhancePangenome {
 process ComputeChunks {
     label 'single_cpu'
     publishDir "${params.db_path}/chunks/sites/"
-    // publishDir "${params.db_path}/chunks/sites/run/chunksize.${params.run_chunk_size}/${species}/", mode: "copy"
 
     input:
     tuple val(genome), val(species), path(fna)
@@ -940,27 +819,3 @@ compute_chunks.py --fna ${fna} \
 
 """
 }
-
-// process ComputeMergeSNPsChunks {
-//     label 'single_cpu'
-//     publishDir "${params.db_path}/chunks/sites/merge/chunksize.${params.merge_chunk_size}/${species}/", mode: "copy"
-
-//     input:
-//     tuple val(genome), val(species), path(fna)
-
-//     output:
-//     path("${genome}.json")
-
-// """
-// #!/usr/bin/env python3
-
-// import json
-// from chunk_tools import design_merge_snps_chunks
-
-// merge_snp_chunks_to_cache = design_merge_snps_chunks('${species}', '${fna}', ${params.merge_chunk_size})
-
-// with open('${genome}.json', 'w') as stream:
-//     json.dump(merge_snp_chunks_to_cache, stream)
-
-// """
-// }
