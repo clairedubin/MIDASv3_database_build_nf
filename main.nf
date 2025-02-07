@@ -69,18 +69,24 @@ workflow {
         .map{ r -> tuple(r[0], r[1]) } // tuple of (genome, species)
         .set{ rep_genomes }
 
-    //// ANNOTATION ////
+    //// IDENTIFY AND ANNOTATE GENES ////
 
     AnnotateGenomes(genomes)
     CombineCleanedGenes(AnnotateGenomes.out.cleaned_genes.groupTuple(by: 1))
-    RunGeNomad(AnnotateGenomes.out.fna_tuple)
-    RunResFinder(AnnotateGenomes.out.fna_tuple)
 
     CalculateContigLength(
         AnnotateGenomes.out.fna_tuple
             .groupTuple(by: 1)
             .map{ r -> tuple(r[1], r[2])}
             )
+
+    //// COMPUTE CHUNKS FOR SPECIES REPRESENTATIVES ////
+
+    rep_genomes
+        .join(AnnotateGenomes.out.fna_tuple, by: [0,1])
+        .set{rep_genome_fna_tuples}
+
+    ComputeChunks(rep_genome_fna_tuples)
 
     //// BUILD MARKER DB ////
 
@@ -109,7 +115,7 @@ workflow {
         max_cluster_output.cluster_pct
     )
 
-    // Clustering highest cluster threshold output (e.g. C99) at lower thresholds
+    // Clustering results of highest cluster threshold (e.g. C99) at lower thresholds
     remaining_clusters_list = params.centroid_cluster_percents.findAll {it != params.max_cluster_val}
         
     Channel
@@ -160,9 +166,11 @@ workflow {
         .combine(ParseReclusteredCentroidInfo.out.reclustered_centroid_info, by: 0)
         )
         
-    ////// EGGNOG ANNOTATION OF CENTROIDS ////
+    ////// FUNCTIONAL ANNOTATION ////
 
     RunEggNog(RefineClusters.out.centroid_ffn)
+    RunGeNomad(AnnotateGenomes.out.fna_tuple)
+    RunResFinder(AnnotateGenomes.out.fna_tuple)
     
     //// COMBINE ANNOTATION RESULTS ////
 
@@ -187,19 +195,13 @@ workflow {
     
     EnhancePangenome(enhance_pangenome_input)
 
-    //// COMPUTE CHUNKS FOR SPECIES REPRESENTATIVE ////
 
-    rep_genomes
-        .join(AnnotateGenomes.out.fna_tuple, by: [0,1])
-        .set{rep_genome_fna_tuples}
-
-    ComputeChunks(rep_genome_fna_tuples)
     
 }
 
 process AnnotateGenomes {
 
-    label 'mem_high'
+    label 'mem_medium'
     publishDir "${params.db_path}/gene_annotations/${species}/${genome}", mode: "copy"
 
     input:
