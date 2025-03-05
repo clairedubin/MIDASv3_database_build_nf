@@ -47,12 +47,8 @@ params.findAll { key, _ -> key.endsWith("_path") }
 
 include { check_input } from './modules/check_input' 
 
-include { ClusterCentroids as ClusterCentroids } from './modules/cluster_centroids' params(
-    db_path: params.db_path
-)
-include { ClusterCentroids as ClusterCentroidsLowerThresholds } from './modules/cluster_centroids' params(
-    db_path: params.db_path
-)
+include { ClusterCentroids as ClusterCentroids } from './modules/cluster_centroids'
+include { ClusterCentroids as ClusterCentroidsLowerThresholds } from './modules/cluster_centroids'
 
 workflow {
 
@@ -565,7 +561,7 @@ process RunEggNog {
 
 process RunGeNomad {
     
-    label 'mem_very_high'
+    label 'mem_high'
     conda "${params.genomad_conda_path}"
     publishDir "${params.db_path}/pangenomes_annotation/01_mge/${species}/${genome}/genomad_output", mode: "copy"
     
