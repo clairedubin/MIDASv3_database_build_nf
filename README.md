@@ -63,7 +63,7 @@ The following parameters can be configured in your Nextflow run command or in th
 | `--marker_set`                | Marker set for HMM models            | `phyeco`                                              |
 
 
-Additionally, the following nextflow flags can be used. Additional flags and information can be found in the [Nextflow documentation](https://www.nextflow.io/docs/stable/cli.html).
+The following nextflow command line flags can also be used. Additional flags and information can be found in the [Nextflow documentation](https://www.nextflow.io/docs/stable/cli.html).
 
 | Parameter                   | Description                          | Default Value                                         |
 | --------------------------- | ------------------------------------ | ----------------------------------------------------- |
