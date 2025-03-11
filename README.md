@@ -70,7 +70,8 @@ Additionally, the following nextflow flags can be used. Additional flags and inf
 | `-w`                | Directory for scratch data            | `./work`                                                |
 | `-c`                | Configuration file            | `nextflow.config`                                              |
 | `-params-file`                | Parameters file            | `params.json`                                              |
-| `-resume`                | Resume previously running job            | `None` (don't resume)                                              |
+| `-resume`                | Resume previously running job            |                                |
+| `-h` or   `--help`        | Show help message and exit            |                                |
 
 
 
@@ -88,11 +89,6 @@ You can also use a configuration file:
 nextflow run main.nf -c nextflow.config
 ```
 
-## Help Function
-
-```bash
-nextflow run main.nf --help
-```
 
 ## Example data
 
