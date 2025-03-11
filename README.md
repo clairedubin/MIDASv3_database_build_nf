@@ -82,15 +82,8 @@ The following nextflow command line flags can also be used. Additional flags and
 To run the pipeline:
 
 ```bash
-nextflow run main.nf --db_output_dir /path/to/db/output/ --db_name example_db
-```
-
-You can also use a configuration file:
-
-```bash
 nextflow run main.nf -c nextflow.config
 ```
-
 
 ## Example data
 
