@@ -13,11 +13,11 @@ This Nextflow pipeline is designed to create a custom database for use with the 
 Genome assemblies must already be clustered into species or species-level genome bins.
 
 A TSV with five columns:
-- genome: the name of the genome
-- species: 6 digit identifier for the species - these can be randomly assigned.
-- representative: the representative genome from the species cluster
-- genome_is_representative: whether the genome is the representative genome for the species cluster
-- fasta_path: full path to the genome assembly file
+- `genome`: the name of the genome
+- `species`: 6 digit identifier for the species - these can be randomly assigned.
+- `representative`: the representative genome from the species cluster
+- `genome_is_representative`: whether the genome is the representative genome for the species cluster
+- `fasta_path`: full path to the genome assembly file
 
 Example genomes.tsv:
 
