@@ -97,7 +97,7 @@ nextflow run main.nf -c nextflow.config
 Example data is available in the testing folder. To build a database from this data, run:
 ```bash
 cd ~/MIDAS3_nextflow #location of this nextflow pipeline
-nextflow run main.nf -c nextflow.config -params-file params.json --genomes_tsv_path testing/inputs/genomes_with_paths.tsv --db_output_dir testing -w testing/work```
+nextflow run main.nf -c nextflow.config -params-file params.json --genomes_tsv_path testing/inputs/genomes.tsv --db_output_dir testing -w testing/work```
 ```
 
 ## Citation
