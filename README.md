@@ -5,7 +5,7 @@ This Nextflow pipeline is designed to create a custom database for use with the 
 ## Installation
 
 1. Install nextflow
-2. Configure nextflow for your system or HPC
+2. Update nextflow.config for your system or HPC. The included nextflow.config file only works for a SGE HPC system.
 3. Install the Eggnog database
 
 ## Inputs 
