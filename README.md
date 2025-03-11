@@ -35,6 +35,7 @@ The following parameters must be included in your Nextflow run command or via a 
 
 | Parameter                   | Description                          | Example Value                                        |
 | --------------------------- | ------------------------------------ | ----------------------------------------------------- |
+| `--genomes_tsv_path`        | Path to genomes file    | `genomes.tsv`   |
 | `eggnog_db_dir`             | Path to Eggnog database directory    | `/wynton/group/sirota/clairedubin/databases/eggnog`   |
 | `eggnog_dmnd_db_name`       | Eggnog Diamond database name         | `eggnog_proteins.dmnd`                                |
 | `eggnog_conda_dir`          | Path to Eggnog Conda environment     | `/wynton/protected/home/sirota/clairedubin/anaconda3/envs/eggnog` |
