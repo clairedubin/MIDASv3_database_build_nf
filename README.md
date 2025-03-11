@@ -47,7 +47,7 @@ The following parameters must be included in your Nextflow run command or via a 
 
 ## Optional Parameters
 
-The following parameters can be configured in your Nextflow run command or via a `params.json` file:
+The following parameters can be configured in your Nextflow run command or in the `params.json` file:
 
 | Parameter                   | Description                          | Default Value                                         |
 | --------------------------- | ------------------------------------ | ----------------------------------------------------- |
