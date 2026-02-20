@@ -1,12 +1,6 @@
 #!/usr/bin/env nextflow
 
 nextflow.enable.dsl=2
-
-// TODO:
-// containerize stuff
-// clean up files in bin 
-// add help message
-
 params.max_cluster_val = params.centroid_cluster_percents.max()
 
 // Ensure directories end with trailing "/" characters
@@ -46,7 +40,6 @@ params.findAll { key, _ -> key.endsWith("_path") }
     }
 
 include { check_input } from './modules/check_input' 
-
 include { ClusterCentroids as ClusterCentroids } from './modules/cluster_centroids'
 include { ClusterCentroids as ClusterCentroidsLowerThresholds } from './modules/cluster_centroids'
 
@@ -66,7 +59,6 @@ workflow {
         .set{ rep_genomes }
 
     //// IDENTIFY AND ANNOTATE GENES ////
-
     AnnotateGenomes(genomes)
     CombineCleanedGenes(AnnotateGenomes.out.cleaned_genes.groupTuple(by: 1))
 
@@ -77,7 +69,6 @@ workflow {
             )
 
     //// COMPUTE CHUNKS FOR SPECIES REPRESENTATIVES ////
-
     rep_genomes
         .join(AnnotateGenomes.out.fna_tuple, by: [0,1])
         .set{rep_genome_fna_tuples}
@@ -85,7 +76,6 @@ workflow {
     ComputeChunks(rep_genome_fna_tuples)
 
     //// BUILD MARKER DB ////
-
     HMMMarkerSearch(AnnotateGenomes.out.faa_ffn_tuple)
 
     rep_genomes
@@ -191,8 +181,6 @@ workflow {
     
     EnhancePangenome(enhance_pangenome_input)
 
-
-    
 }
 
 process AnnotateGenomes {
