@@ -1,7 +1,4 @@
 {
-    "skip_annotation": false,
-    "annotate_only": false,
-
     "centroid_cluster_percents": [99, 95, 90, 85, 80, 75],
     "run_chunk_size": 1000000,
     "merge_chunk_size": 500000,
