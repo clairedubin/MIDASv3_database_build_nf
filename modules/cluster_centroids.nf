@@ -2,7 +2,7 @@
 process ClusterCentroids {
     label 'mem_high'
     publishDir "${params.db_path}/pangenomes/${species}/temp/vsearch/", mode: "copy"
-
+    
     input:
     tuple val(cluster_pct), val(species), path(genes_ffn)
 
