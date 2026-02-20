@@ -5,10 +5,12 @@ This Nextflow pipeline is designed to create a custom database for use with MIDA
 ## Installation
 
 1. [Install nextflow](https://www.nextflow.io/docs/latest/install.html). This pipeline has been tested on Nextflow versions 23.10.0 and 24.10.5.
-2. [Update nextflow.config](https://www.nextflow.io/docs/latest/config.html) for your system or HPC. The included nextflow.config file is specific to the developer's HPC (SGE) and will not work for other systems.
-3. Install the EggNOG, geNomad, and ResFinder databases.
+2. Install conda.
+3. [Update nextflow.config](https://www.nextflow.io/docs/latest/config.html) for your system or HPC. The included nextflow.config file is specific to the developer's HPC (SGE) and will not work for other systems.
+4. Install the EggNOG, geNomad, and ResFinder databases.
 5. Update the params.json file with paths to the database installations.
-6. Test nextflow installation.
+6. Test nextflow installation. ```bash nextflow run main.nf -c nextflow.config -params-file params.json --genomes_tsv_path testing/inputs/genomes_with_paths.tsv --db_output_dir testing -w testing/work```
+7.  
 
 ## Inputs 
 
