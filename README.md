@@ -1,14 +1,14 @@
 ## Overview
 
-This Nextflow pipeline is designed to create a custom database for use with the MIDAS profiling tool. 
+This Nextflow pipeline is designed to create a custom database for use with MIDAS (version 3). 
 
 ## Installation
 
 1. [Install nextflow](https://www.nextflow.io/docs/latest/install.html). This pipeline has been tested on Nextflow versions 23.10.0 and 24.10.5.
 2. [Update nextflow.config](https://www.nextflow.io/docs/latest/config.html) for your system or HPC. The included nextflow.config file is specific to the developer's HPC (SGE) and will not work for other systems.
-3. Install the Eggnog database.
-4. Update the params.json file with paths to the database installations.
-5. Test nextflow installation.
+3. Install the EggNOG, geNomad, and ResFinder databases.
+5. Update the params.json file with paths to the database installations.
+6. Test nextflow installation.
 
 ## Inputs 
 
@@ -97,12 +97,13 @@ nextflow run main.nf -c nextflow.config
 Example data is available in the testing folder. To build a database from this data, run:
 ```bash
 cd ~/MIDAS3_nextflow #location of this nextflow pipeline
-nextflow run main.nf -c nextflow.config -params-file params.json --genomes_tsv_path testing/inputs/genomes_with_paths.tsv --db_output_dir testing -w testing/work```
+nextflow run main.nf -c nextflow.config -params-file params.json --genomes_tsv_path testing/inputs/genomes_with_paths.tsv --db_output_dir testing -w testing/work
 ```
 
 ## Citation
 
 If you use this tool, please cite:
-TODO: MIDAS paper
-TODO: My paper!
+1. Dubin CA, Zhao C, Pollard KS, Oskotsky T, Golob JL, Sirota M. Expanding vaginal microbiome pangenomes via a custom MIDAS database reveals Lactobacillus crispatus accessory genes associated with cervical dysplasia. bioRxiv. Preprint posted online September 11, 2025:2025.09.11.675634. doi:10.1101/2025.09.11.675634
+2. Smith BJ, Zhao C, Dubinkina V, Jin X, Zahavi L, Shoer S, Moltzau-Anderson J, Segal E, Pollard KS. Accurate estimation of intraspecific microbial gene content variation in metagenomic data with MIDAS v3 and StrainPGC. Genome Res. 2025 May 2;35(5):1247-1260. doi: 10.1101/gr.279543.124. PMID: 40210439; PMCID: PMC12047655.
+
 
