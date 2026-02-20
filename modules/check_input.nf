@@ -54,17 +54,6 @@ def check_input(genomes_tsv_path) {
             }
         }
         
-        if (!params.annotate_only) {
-        // Check that each species has exactly one representative genome
-        speciesMap.each { species, counts ->
-            if (counts.representativeCount != 1) {
-                throw new IllegalStateException("Error: Species '${species}' does not \
-                have exactly one representative genome. Found ${counts.representativeCount} \
-                representative genomes instead.")
-            }
-        }
-        }
-        
     }
 }
 
