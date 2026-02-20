@@ -54,6 +54,7 @@ def check_input(genomes_tsv_path) {
             }
         }
         
+        if (!params.annotate_only) {
         // Check that each species has exactly one representative genome
         speciesMap.each { species, counts ->
             if (counts.representativeCount != 1) {
@@ -62,7 +63,7 @@ def check_input(genomes_tsv_path) {
                 representative genomes instead.")
             }
         }
-
+        }
         
     }
 }
