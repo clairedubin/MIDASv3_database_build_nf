@@ -521,7 +521,7 @@ with open("contigs.len", 'w') as f:
 process RunEggNog {
 
     label 'mem_very_high'
-    conda "${params.eggnog_conda_path}"
+    conda "${projectDir}/env/eggnog.yml"
     publishDir "${params.db_path}/pangenomes_annotation/02_eggnog/${species}", mode: "copy"
     
     input:
@@ -550,7 +550,7 @@ process RunEggNog {
 process RunGeNomad {
     
     label 'mem_high'
-    conda "${params.genomad_conda_path}"
+    conda "${projectDir}/env/genomad.yml"
     publishDir "${params.db_path}/pangenomes_annotation/01_mge/${species}/${genome}/genomad_output", mode: "copy"
     
     input:
