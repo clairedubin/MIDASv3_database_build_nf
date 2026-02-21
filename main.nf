@@ -172,9 +172,10 @@ workflow {
 // DATABASE SETUP PROCESSES (mkdir fix applied)
 // ─────────────────────────────────────────────────────────────────────────────
 
+
 process DownloadGeNomadDB {
     executor 'local'
-    conda "${projectDir}/env/genomad.yml"
+    conda false
     storeDir "${params.genomad_db_dir}"
 
     output:
@@ -182,12 +183,20 @@ process DownloadGeNomadDB {
 
     script:
     """
-    genomad download-database .
+    # Download the database archive using the URL from params
+    wget -O genomad_db_*.tar.gz "${params.genomad_db_url}"
+    
+    # Extract the archive
+    tar -xzf genomad_db_*.tar.gz
+    
+    # Clean up the tarball
+    rm genomad_db_*.tar.gz
     """
 }
 
 process DownloadEggNogDB {
     executor 'local'
+    conda false
     storeDir "${params.eggnog_db_dir}"
 
     output:

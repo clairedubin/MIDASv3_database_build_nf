@@ -13,6 +13,7 @@
 
     "eggnog_db_dir": "databases/eggnog",
     "genomad_db_dir": "databases/genomad",
+    "genomad_db_url": "https://zenodo.org/records/8339387/files/genomad_db_v1.5.tar.gz?download=1",
     "resfinder_db_dir": "databases/resfinder",
 
     "eggnog_dmnd_db_name": "eggnog_proteins.dmnd"
