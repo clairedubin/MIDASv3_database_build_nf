@@ -1,115 +1,115 @@
+# MIDAS3 Database Pipeline
+
 ## Overview
 
-This Nextflow pipeline is designed to create a custom database for use with MIDAS (version 3). 
+This Nextflow pipeline is designed to create a custom database from a set of prokaryote genome assemblies for use with MIDAS (version 3). 
+
+---
 
 ## Installation
 
-1. [Install nextflow](https://www.nextflow.io/docs/latest/install.html). This pipeline has been tested on Nextflow versions 23.10.0 and 24.10.5.
-2. [Install conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html).
-3. [Update nextflow.config](https://www.nextflow.io/docs/latest/config.html) for your system or HPC. The included nextflow.config file is specific to the developer's HPC (SGE) and will not work for other systems.
-4. Install the EggNOG, geNomad, and ResFinder databases. These are approximately _ GB total. If ```--dir``` is not specified, the databases will be installed in ./databases.
+### 1. Requirements
+
+- **Nextflow:** Install [Nextflow](https://www.nextflow.io/). This pipeline has been tested on versions 23.10.0 and 24.10.5.
+- **Conda:** Install [Conda](https://docs.conda.io/en/latest/miniconda.html) (Miniconda or Anaconda) for environment management.
+
+### 2. Prebuild Conda Environments
+
+To save time during execution and ensure stability on HPC clusters, run the prebuild script. This creates all necessary environments in a `.conda_envs/` directory and generates a configuration file so Nextflow knows where to find them.
+```bash
+bash bin/prebuild_conda_envs.sh
 ```
-chmod +x bin/setup_databases.sh
-./bin/setup_databases.sh --dir /path/to/install/location
-```
-6. Update the params.json file with paths to the database installations.
-7. Test nextflow installation. ```nextflow run main.nf -c nextflow.config -params-file params.json --genomes_tsv_path testing/inputs/genomes.tsv --db_output_dir testing -w testing/work```
-8.  
 
-## Inputs 
+> **Note:** This modifies `conf/conda_envs.config`. If you wish to revert to on-the-fly environment creation from YML files, re-download that file from Github.
 
-Genome assemblies must already be clustered into species or species-level genome bins.
+### 3. HPC Configuration
 
-A TSV with five columns:
-- `genome`: the name of the genome
-- `species`: 6 digit identifier for the species - these can be randomly assigned.
-- `representative`: the representative genome from the species cluster
-- `genome_is_representative`: whether the genome is the representative genome for the species cluster
-- `fasta_path`: full path to the genome assembly file
+The included `nextflow.config` is pre-configured for SGE on UCSF's Wynton cluster. Update the `process` and `executor` settings in `nextflow.config` to match your specific system or HPC (e.g., Slurm, LSF).
 
-Example genomes.tsv:
+---
 
-| genome            | species  | representative        | genome_is_representative | fasta_path                                    |
-|-------------------|----------|-----------------------|--------------------------|-------------------------------------------------|
-| GCA_900552055.1   | 117086   | GCA_900552055.1       | 1                       | /Users/myname/MIDAS3_nextflow/testing/inputs/genomes/GCA_900552055.1.fasta |
-| GCF_900752885.1   | 117086   | GCA_900552055.1       | 0                 | /Users/myname/MIDAS3_nextflow/testing/inputs/genomes/GCF_900752885.1.fasta |
-| GCA_007120565.1   | 117088   | GCA_007120565.1       | 1                 | /Users/myname/MIDAS3_nextflow/testing/inputs/genomes/GCA_007120565.1.fasta |
-| GCA_007135585.1   | 117088   | GCA_007120565.1       | 0                 | /Users/myname/MIDAS3_nextflow/testing/inputs/genomes/GCA_007135585.1.fasta |
+## Database Setup
 
-## Required parameters
+This pipeline handles the installation of the EggNOG, geNomad, and ResFinder databases automatically.
 
-The following parameters must be included in your Nextflow run command or via a `params.json` file:
+- Specify the desired installation paths for these databases in your `params.json`.
+- If the specified directories do not exist, the pipeline will automatically trigger download processes (run locally).
+  
+---
 
-| Parameter                   | Description                          | Example Value                                        |
-| --------------------------- | ------------------------------------ | ----------------------------------------------------- |
-| `eggnog_db_dir`             | Path to Eggnog database directory    | `/wynton/group/sirota/clairedubin/databases/eggnog`   |
-| `eggnog_dmnd_db_name`       | Eggnog Diamond database name         | `eggnog_proteins.dmnd`                                |
-| `eggnog_conda_dir`          | Path to Eggnog Conda environment     | `/wynton/protected/home/sirota/clairedubin/anaconda3/envs/eggnog` |
-| `genomad_db_dir`            | Path to Genomad database directory   | `/wynton/protected/home/sirota/clairedubin/databases/genomad_db_v1.5/genomad_db` |
-| `genomad_conda_dir`         | Path to Genomad Conda environment    | `/wynton/protected/home/sirota/clairedubin/anaconda3/envs/genomad` |
-| `resfinder_env_dir`          | Path to ResFinder environment        | `/wynton/protected/home/sirota/clairedubin/envs/resfinder_env` |
-| `resfinder_db_dir`           | Path to ResFinder databases          | `/wynton/protected/home/sirota/clairedubin/databases/resfinder_dbs` |
-| `blastn_dir`                | Path to BLASTN executable            | `/wynton/protected/home/sirota/clairedubin/bin/ncbi-blast-2.14.1+/bin` |
-| `git_dir`                   | Path to Git executable               | `/wynton/protected/home/sirota/clairedubin/bin/git-2.39.5`           |
+## Inputs
 
+Genome assemblies must already be clustered into species or species-level genome bins. Provide a TSV file with the following five columns:
 
-## Optional Parameters
+| Column | Description |
+|--------|-------------|
+| `genome` | The name of the genome. |
+| `species` | A unique identifier for the species cluster (e.g., a 6-digit ID). |
+| `representative` | The name of the representative genome for that cluster. |
+| `genome_is_representative` | `1` if the genome is the representative, `0` otherwise. |
+| `fasta_path` | The full path to the genome assembly file. |
 
-The following parameters can be configured in your Nextflow run command or in the `params.json` file:
+**Example `genomes.tsv`:**
 
-| Parameter                   | Description                          | Default Value                                         |
-| --------------------------- | ------------------------------------ | ----------------------------------------------------- |
-| `--db_name`                   | Name of the database                 | `nextflow_db`                                         |
-| `--db_output_dir`             | Directory for database output        | `.` (current directory)                               |
-| `--centroid_cluster_percents` | Cluster percentages for centroids    | `[99, 95, 90, 85, 80, 75]`                           |
-| `--run_chunk_size`            | Chunk size for running processes     | `1000000`                                             |
-| `--merge_chunk_size`          | Chunk size for merging processes     | `500000`                                              |
-| `--resfinder_min_cov`         | Minimum coverage for ResFinder       | `0.6`                                                 |
-| `--resfinder_identity_threshold` | Identity threshold for ResFinder   | `0.8`                                                 |
-| `--hmmsearch_min_cov`         | Minimum coverage for HMM search      | `0.0`                                                 |
-| `--hmmsearch_max_evalue`      | Maximum e-value for HMM search       | `1e-5`                                                |
-| `--marker_set`                | Marker set for HMM models            | `phyeco`                                              |
+| genome | species | representative | genome_is_representative | fasta_path |
+|--------|---------|----------------|--------------------------|------------|
+| GCA_900552055.1 | 117086 | GCA_900552055.1 | 1 | /path/to/genomes/GCA_900552055.1.fasta |
+| GCF_900752885.1 | 117086 | GCA_900552055.1 | 0 | /path/to/genomes/GCF_900752885.1.fasta |
 
+---
 
-The following nextflow command line flags can also be used. Additional flags and information can be found in the [Nextflow documentation](https://www.nextflow.io/docs/stable/cli.html).
+## Parameters
 
-| Parameter                   | Description                          | Default Value                                         |
-| --------------------------- | ------------------------------------ | ----------------------------------------------------- |
-| `-w`                | Directory for scratch data            | `./work`                                                |
-| `-c`                | Configuration file            | `nextflow.config`                                              |
-| `-params-file`                | Parameters file            | `params.json`                                              |
-| `-resume`                | Resume previously running job            |                                |
-| `-h` or   `--help`        | Show help message and exit            |                                |
+### Required Parameters (`params.json`)
 
+| Parameter | Description |
+|-----------|-------------|
+| `eggnog_db_dir` | Directory where EggNOG data is stored/downloaded. |
+| `genomad_db_dir` | Directory where geNomad data is stored/downloaded. |
+| `resfinder_db_dir` | Directory where ResFinder/PointFinder data is stored/downloaded. |
+| `eggnog_dmnd_db_name` | Name of the EggNOG Diamond database (usually `eggnog_proteins.dmnd`). |
+| `marker_set` | Marker set for HMM models (default: `phyeco`). |
 
+### Optional Parameters
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `--db_name` | Name of the output database. | `nextflow_db` |
+| `--db_output_dir` | Parent directory for the database output. | `.` |
+| `--centroid_cluster_percents` | Identity thresholds for clustering. MIDAS expects databases to have the default thresholds. | `[99, 95, 90, 85, 80, 75]` |
+
+---
 
 ## Usage
 
-To run the pipeline:
-
+To run the pipeline with a parameters file:
 ```bash
-nextflow run main.nf --db_output_dir /path/to/db/output/ --db_name example_db
+nextflow run main.nf -c nextflow.config -params-file params.json --genomes_tsv_path genomes.tsv
 ```
 
-You can also use a configuration file:
+### Resume Execution
 
+If a run fails or is interrupted, use the `-resume` flag to pick up where it left off:
 ```bash
-nextflow run main.nf -c nextflow.config
+nextflow run main.nf -c nextflow.config -params-file params.json -resume
 ```
 
-
-## Example data
-
-Example data is available in the testing folder. To build a database from this data, run:
+### Example Test Run
 ```bash
-cd ~/MIDAS3_nextflow #location of this nextflow pipeline
-nextflow run main.nf -c nextflow.config -params-file params.json --genomes_tsv_path testing/inputs/genomes_with_paths.tsv --db_output_dir testing -w testing/work
+nextflow run main.nf \
+  -c nextflow.config \
+  -params-file params.json \
+  --genomes_tsv_path testing/inputs/genomes.tsv \
+  --db_output_dir testing \
+  -w testing/work
 ```
+
+---
 
 ## Citation
 
 If you use this tool, please cite:
-1. Dubin CA, Zhao C, Pollard KS, Oskotsky T, Golob JL, Sirota M. Expanding vaginal microbiome pangenomes via a custom MIDAS database reveals Lactobacillus crispatus accessory genes associated with cervical dysplasia. bioRxiv. Preprint posted online September 11, 2025:2025.09.11.675634. doi:10.1101/2025.09.11.675634
-2. Smith BJ, Zhao C, Dubinkina V, Jin X, Zahavi L, Shoer S, Moltzau-Anderson J, Segal E, Pollard KS. Accurate estimation of intraspecific microbial gene content variation in metagenomic data with MIDAS v3 and StrainPGC. Genome Res. 2025 May 2;35(5):1247-1260. doi: 10.1101/gr.279543.124. PMID: 40210439; PMCID: PMC12047655.
 
+- Dubin CA, Zhao C, Pollard KS, Oskotsky T, Golob JL, Sirota M. Expanding vaginal microbiome pangenomes via a custom MIDAS database reveals *Lactobacillus crispatus* accessory genes associated with cervical dysplasia. *bioRxiv*. 2025. doi:[10.1101/2025.09.11.675634](https://doi.org/10.1101/2025.09.11.675634)
 
+- Smith BJ, Zhao C, Dubinkina V, Jin X, Zahavi L, Shoer S, Moltzau-Anderson J, Segal E, Pollard KS. Accurate estimation of intraspecific microbial gene content variation in metagenomic data with MIDAS v3 and StrainPGC. *Genome Res*. 2025. doi:[10.1101/gr.279543.124](https://doi.org/10.1101/gr.279543.124)
