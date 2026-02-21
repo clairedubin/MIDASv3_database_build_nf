@@ -1,0 +1,7 @@
+name: hsblastn
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - hs-blastn=0.0.5=h4ac6f70_5

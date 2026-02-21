@@ -1,0 +1,15 @@
+name: resfinder_env
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - git          
+  - blast        
+  - kma
+  - setuptools<70.0.0  
+  - pip:
+    - resfinder
+    - MobileElementFinder

@@ -1,0 +1,21 @@
+name: prokka_env
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.9.19
+  - prokka=1.14.6
+  - perl-bioperl=1.7.8
+  - gffutils=0.13
+  - pandas=2.2.2
+  - numpy=2.0.1
+  - blast=2.16.0
+  - hmmer=3.4
+  - aragorn=1.2.41
+  - prodigal=2.6.3
+  - tbl2asn-forever=25.7.2f
+  - pip=24.2=pyhd8ed1ab_0
+  - pip:
+      - biopython==1.80
+      - bcbio-gff==0.7.1
