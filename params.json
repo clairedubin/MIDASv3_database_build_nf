@@ -11,16 +11,9 @@
     "db_name": "nextflow_db",
     "db_output_dir": ".",
 
-    "eggnog_db_dir": "/wynton/group/sirota/clairedubin/databases/eggnog",
-    "eggnog_dmnd_db_name": "eggnog_proteins.dmnd",
+    "eggnog_db_dir": "databases/eggnog",
+    "genomad_db_dir": "databases/genomad",
+    "resfinder_db_dir": "databases/resfinder",
 
-    "genomad_db_dir": "/wynton/home/sirota/clairedubin/databases/genomad_db_v1.5/genomad_db",
-
-    "resfinder_env_dir": "/wynton/home/sirota/clairedubin/envs/resfinder_env",
-    "resfinder_db_dir": "/wynton/home/sirota/clairedubin/databases/resfinder_dbs",
-
-    "blastn_dir": "/wynton/home/sirota/clairedubin/bin/ncbi-blast-2.14.1+/bin",
-    "git_dir": "/wynton/home/sirota/clairedubin/bin/git-2.39.5"
-
-  }
-  
+    "eggnog_dmnd_db_name": "eggnog_proteins.dmnd"
+}
