@@ -1,6 +1,7 @@
 
 process ClusterCentroids {
     label 'mem_high'
+    conda "${projectDir}/env/vsearch.yml"
     publishDir "${params.db_path}/pangenomes/${species}/temp/vsearch/", mode: "copy"
     
     input:
