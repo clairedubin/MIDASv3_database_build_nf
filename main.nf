@@ -225,9 +225,9 @@ process DownloadResFinderDB {
 
     script:
     """
-    git clone https://git@bitbucket.org/genomicepidemiology/resfinder_db.git resfinder_db
-    git clone https://git@bitbucket.org/genomicepidemiology/pointfinder_db.git pointfinder_db
-    git clone https://git@bitbucket.org/genomicepidemiology/disinfinder_db.git disinfinder_db
+    git clone -b 2.4.0 https://git@bitbucket.org/genomicepidemiology/resfinder_db.git resfinder_db    
+    git clone -b 4.1.1 https://git@bitbucket.org/genomicepidemiology/pointfinder_db.git pointfinder_db
+    git clone -b 2.0.1 https://git@bitbucket.org/genomicepidemiology/disinfinder_db.git disinfinder_db
     
     cd resfinder_db && python3 INSTALL.py
     cd ../pointfinder_db && python3 INSTALL.py
