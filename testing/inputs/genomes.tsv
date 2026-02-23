@@ -1,5 +1,5 @@
 genome	species	representative	genome_is_representative	fasta_path
-GCA_900552055.1	117086	GCA_900552055.1	1	/wynton/home/sirota/clairedubin/MIDAS3_nextflow/testing/inputs/genomes/GCA_900552055.1.fasta
-GCF_900752885.1	117086	GCA_900552055.1	0	/wynton/home/sirota/clairedubin/MIDAS3_nextflow/testing/inputs/genomes/GCF_900752885.1.fasta
-GCA_007120565.1	117088	GCA_007120565.1	1	/wynton/home/sirota/clairedubin/MIDAS3_nextflow/testing/inputs/genomes/GCA_007120565.1.fasta
-GCA_007135585.1	117088	GCA_007120565.1	0	/wynton/home/sirota/clairedubin/MIDAS3_nextflow/testing/inputs/genomes/GCA_007135585.1.fasta
+GCA_900552055.1	117086	GCA_900552055.1	1	./testing/inputs/genomes/GCA_900552055.1.fasta
+GCF_900752885.1	117086	GCA_900552055.1	0	./testing/inputs/genomes/GCF_900752885.1.fasta
+GCA_007120565.1	117088	GCA_007120565.1	1	./testing/inputs/genomes/GCA_007120565.1.fasta
+GCA_007135585.1	117088	GCA_007120565.1	0	./testing/inputs/genomes/GCA_007135585.1.fasta
