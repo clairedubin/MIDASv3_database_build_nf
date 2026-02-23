@@ -1,4 +1,4 @@
-# MIDAS3 Database Pipeline
+# MIDAS3 Database Build Pipeline
 
 ## Overview
 
@@ -20,7 +20,7 @@ To save time during execution and ensure stability on HPC clusters, run the preb
 bash bin/prebuild_conda_envs.sh
 ```
 
-> **Note:** This modifies `conf/conda_envs.config`. If you wish to revert to on-the-fly environment creation from YML files, re-download that file from Github.
+> **Note:** This modifies `conf/conda_envs.config`. If you want to revert to on-the-fly environment creation from YML files, re-download that file from Github.
 
 ### 3. HPC Configuration
 
@@ -96,6 +96,9 @@ nextflow run main.nf -c nextflow.config -params-file params.json -resume
 
 ### Example Test Run
 ```bash
+
+bash bin/prebuild_conda_envs.sh
+
 nextflow run main.nf \
   -c nextflow.config \
   -params-file params.json \
