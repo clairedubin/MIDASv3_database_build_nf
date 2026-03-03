@@ -43,7 +43,8 @@ workflow {
     genomes = Channel
         .fromPath(params.genomes_tsv_path)
         .splitCsv(header: true, sep: '\t')
-        .map { row -> tuple(row.genome, row.species, row.representative, row.genome_is_representative, row.fasta_path) }
+	.map { row -> tuple(row.genome, row.species, row.representative, row.genome_is_representative, file(row.fasta_path, checkIfExists: true)) }
+        //.map { row -> tuple(row.genome, row.species, row.representative, row.genome_is_representative, row.fasta_path) }
 
     // Filter to only representative genomes
     genomes.filter { r -> (r[3] == "1") }
@@ -245,7 +246,8 @@ process AnnotateGenomes {
     publishDir "${params.db_path}/gene_annotations/${species}/${genome}", mode: "copy"
 
     input:
-    tuple val(genome), val(species), val(representative), val(genome_is_representative), val(genome_path)
+    tuple val(genome), val(species), val(representative), val(genome_is_representative), path(genome_path)
+    //tuple val(genome), val(species), val(representative), val(genome_is_representative), val(genome_path)
 
     output:
     tuple val(genome), val(species), path("${genome}.fna"),                         emit: fna_tuple
